@@ -1,8 +1,5 @@
-# Flood-Mapping-Pakistan-Case
-Visualization and Analysis of Pakistan Floods 2022 Using Earth Engine and Geemap.
-
-## Introduction
-From 14 June to October 2022, floods in Pakistan killed 1,739 people, and caused 3.2 trillion Pakistani Rupees (14.9 billion US Dollars) of damage and 3.3 trillion Pakistani Rupees (15.2 billion US Dollars) of economic losses. The flooding was the world's deadliest flood since the 2020 South Asian floods and described as the worst in the country's history. On 25 August 2022, Pakistan declared a state of emergency because of the flooding. See the Wikipedia page for more information about the 2022 Pakistan floods.
+# Flood-Mapping-Case
+Visualization and Analysis of Floods Using Earth Engine and Geemap.
 
 ## Requirements
 To follow this tutorial, you must first [sign up](https://code.earthengine.google.com/register) for a [Google Earth Engine account](https://earthengine.google.com/). Earth Engine is a cloud computing platform with a multi-petabyte catalog of satellite imagery and geospatial datasets. It is free for noncommercial use. To authenticate the Earth Engine Python API, see instructions [here](https://book.geemap.org/chapters/01_introduction.html#earth-engine-authentication).
