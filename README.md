@@ -1,4 +1,4 @@
-# Flood-Mapping-Case
+# Flood detection
 
 - **Visualization and Analysis of Floods Using Earth Engine and Geemap**: This project focuses on leveraging satellite imagery and geospatial tools to detect and visualize flood-affected areas.
 
