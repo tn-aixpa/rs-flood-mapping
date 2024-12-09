@@ -26,4 +26,27 @@ To install the required libraries, run the following command:
 ```bash
 pip install -r requirements.txt
 
+## Configuration File (`config.ini`)
+
+The `config.ini` file is used to define parameters for the flood analysis. It includes the dates for "before" and "after" events, paths to datasets, and output configurations. This file ensures flexibility and reduces hardcoding in the analysis.
+
+### Example Configuration
+
+```ini
+[GENERAL]
+before_event_start = 2018-10-05       # Start date of the "before event" period
+before_event_end = 2018-10-26         # End date of the "before event" period
+after_event_start = 2018-10-27        # Start date of the "after event" period
+after_event_end = 2018-11-20          # End date of the "after event" period
+difference_threshold = 1.25           # Threshold for flood detection (e.g., NDWI/Sentinel-1)
+
+[INPUT]
+aoi_path = /path/to/aoi_shapefile.shp   # Path to Area of Interest (AOI) shapefile
+s1_collection = COPERNICUS/S1_GRD       # Sentinel-1 ImageCollection ID
+s2_collection = COPERNICUS/S2_SR        # Sentinel-2 ImageCollection ID
+swater_dataset = JRC/GSW1_0/GlobalSurfaceWater  # Permanent water dataset (optional)
+
+[OUTPUT]
+output_directory = /path/to/output        # Directory to save raster and vector outputs
+google_drive_folder = Flood_Analysis      # Google Drive folder to save exported files
 
