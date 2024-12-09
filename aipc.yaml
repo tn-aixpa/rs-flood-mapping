@@ -1,16 +1,15 @@
 
 # aipc.yaml: AI Product Configuration
 project:
-  name: Flood Mapping and Analysis
+  name: Flood detection
   version: 1.0.0
   description: >
     This project focuses on flood detection and analysis using satellite imagery 
     (Sentinel-1 and Sentinel-2). It calculates NDWI and visualizes flood-prone areas, 
     storing results as raster and vector data for further geospatial analysis.
-  author: Your Name or Organization
+  author: Munazza@FBK
   license: MIT
-  repository: https://github.com/yourusername/yourrepository
-
+  repository: https://github.com/Munazaa/Flood-Mapping-Case.git
 dependencies:
   python:
     - geemap >= 0.14.0
@@ -37,6 +36,5 @@ outputs:
   raster: Google Drive (GeoTIFF files for flood extent)
 
 notes:
-  - Post-processing for permanent water masking is ongoing to improve flood detection accuracy.
-  - Rainfall analysis is included using CHIRPS data for temporal insights.
+  - Post-processing is ongoing to improve flood detection accuracy.
   - Results are compatible with geospatial tools like QGIS and ArcGIS.
