@@ -1,0 +1,42 @@
+
+# aipc.yaml: AI Product Configuration
+project:
+  name: Flood Mapping and Analysis
+  version: 1.0.0
+  description: >
+    This project focuses on flood detection and analysis using satellite imagery 
+    (Sentinel-1 and Sentinel-2). It calculates NDWI and visualizes flood-prone areas, 
+    storing results as raster and vector data for further geospatial analysis.
+  author: Your Name or Organization
+  license: MIT
+  repository: https://github.com/yourusername/yourrepository
+
+dependencies:
+  python:
+    - geemap >= 0.14.0
+    - earthengine-api >= 0.1.345
+    - matplotlib >= 3.5.0
+    - pandas >= 1.3.0
+  earthengine:
+    datasets:
+      - COPERNICUS/S1_GRD
+      - COPERNICUS/S2_SR
+      - JRC/GSW1_0/GlobalSurfaceWater
+      - UCSB-CHG/CHIRPS/PENTAD
+
+workflow:
+  - Step 1: Authenticate Google Earth Engine
+  - Step 2: Load Sentinel-1 and Sentinel-2 data for defined AOI
+  - Step 3: Preprocess data (cloud masking, smoothing, slope filtering)
+  - Step 4: Compute NDWI and flood extent
+  - Step 5: Visualize results in Jupyter Notebook
+  - Step 6: Export results (vector and raster) to Google Drive
+
+outputs:
+  vector: Google Drive (Shapefiles for flood-affected areas)
+  raster: Google Drive (GeoTIFF files for flood extent)
+
+notes:
+  - Post-processing for permanent water masking is ongoing to improve flood detection accuracy.
+  - Rainfall analysis is included using CHIRPS data for temporal insights.
+  - Results are compatible with geospatial tools like QGIS and ArcGIS.
