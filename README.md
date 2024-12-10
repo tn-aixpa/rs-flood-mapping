@@ -43,6 +43,8 @@ aoi = coordinates of the rectangle of the area or /path/to/aoi_shapefile.shp   #
 s1_collection = COPERNICUS/S1_GRD       # Sentinel-1 ImageCollection ID or directly from GEE
 s2_collection = COPERNICUS/S2_SR        # Sentinel-2 ImageCollection ID or directly from GEE
 swater_dataset = JRC/GSW1_0/GlobalSurfaceWater  # Permanent water dataset or water data from other sources
+chirps_start_date = 2018-07-01
+chirps_end_date = 2018-11-30
 
 [OUTPUT]
 output_directory = /path/to/output        # Directory to save raster and vector outputs
