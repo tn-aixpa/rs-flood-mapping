@@ -23,8 +23,9 @@ To follow this tutorial, you must first [sign up](https://code.earthengine.googl
 In this tutorial, we will use the [geemap](https://geemap.org/) Python package to visualize and analyze the Pakistan floods. Geemap enables users to analyze and visualize Earth Engine datasets interactively within a Jupyter-based environment with minimal coding. To learn more about geemap, check out https://geemap.org.
 
 To install the required libraries, run the following command:
-```bash
+```sh
 pip install -r requirements.txt
+
 
 ## Configuration File (`config.ini`)
 
