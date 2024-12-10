@@ -28,7 +28,7 @@ To install the required libraries, run the following command:
 pip install -r requirements.txt
 ```
 # Configuration File (config.ini)
-The config.ini file is used to define parameters for the flood analysis. It includes the dates for "before" and "after" events, paths to datasets, and output configurations. This file ensures flexibility and reduces hardcoding in the analysis.
+The config.ini file is used to define parameters for the flood analysis.
 
 ```ini
 [GENERAL]
