@@ -172,9 +172,11 @@ def flood_mask(project,
     .filterBounds(aoi) \
     .select(polarization)
 
+    img1 = ee.Image(s1_collection)              
+
     # SAVE AS PLATFORM ARTIFACT
-    save('s1_collection', data_dir, collection)
-    project.log_artifact(name='s1_collection', kind='artifact', source=data_dir + '/' + 's1_collection')
+    save('s1_collection', data_dir, img1)
+    project.log_artifact(name='s1_collection_img', kind='artifact', source=data_dir + '/' + 's1_collection')
 
     before_collection = collection.filterDate(before_event_start, before_event_end)
     after_collection = collection.filterDate(after_event_start, after_event_end)
@@ -202,6 +204,17 @@ def flood_mask(project,
     connections = flooded.connectedPixelCount(10)
     flooded = flooded.updateMask(connections.gte(10))
 
+    # Convert Sentinel-1 flood raster to vectors
+    flooded_vec = flooded.reduceToVectors(
+        scale=10,
+        geometryType='polygon',
+        geometry=aoi,
+        eightConnected=False,
+        bestEffort=True
+    )              
+    save('flooded_vector', data_dir, flooded_vec)
+    project.log_artifact(name='flooded_vector', kind='artifact', source=data_dir + '/' + 'flooded_vector')
+                  
     # Add slope mask using DEM
     DEM = ee.Image(dem_collection)
 
@@ -234,7 +247,13 @@ def flood_mask(project,
         .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 50))  # Increased threshold from 20 to 50
         .map(mask_clouds)  # Apply cloud and shadow masking
     )
-    
+
+    img2 = ee.Image(s2_collection)              
+
+    # SAVE AS PLATFORM ARTIFACT
+    save('s2_collection', data_dir, img2)
+    project.log_artifact(name='s2_collection_img', kind='artifact', source=data_dir + '/' + 's2_collection')
+
     # Calculate NDWI for before and after periods
     s2_before_collection = sentinel2.filterDate(before_event_start, before_event_end).map(calculate_ndwi)
     s2_after_collection = sentinel2.filterDate(after_event_start, after_event_end).map(calculate_ndwi)
@@ -256,5 +275,14 @@ def flood_mask(project,
         print(f'Object successfully saved as artifact "{file_name}"')
         project.log_artifact(name="s2_flood", kind='artifact', source=data_dir + '/' + file_name)
         print("Sentinel-2 Flood Layer calculated.")
+        s2_flood_vec = s2_flood.reduceToVectors(
+            scale=10,
+            geometryType='polygon',
+            geometry=aoi,
+            eightConnected=False,
+            bestEffort=True
+        )
+        save(file_name+'_vector', dir, s2_flood_vec)
+        project.log_artifact(name="s2_flood_vector", kind='artifact', source=data_dir + '/' + file_name + '_vector')
     else:
         print("No valid Sentinel-2 data available for the specified periods.")
