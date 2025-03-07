@@ -21,7 +21,7 @@ def init_gee(project_name):
     ge_project = 'dh-platform-rsde'
     fa.init_gee(ge_project, service_account, private_key_json)
 
-PROJECT_NAME = "flood-detection"
+PROJECT_NAME = "remote-sensing"
 init_gee(PROJECT_NAME)
 
 with st.sidebar:
