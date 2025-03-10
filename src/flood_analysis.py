@@ -4,6 +4,8 @@ import pandas as pd
 from os import path, makedirs
 from google.auth import compute_engine, impersonated_credentials
 import json
+import ipywidgets as widgets
+from ipyleaflet import WidgetControl
 
 class Layer:
     
@@ -75,7 +77,7 @@ def get_swater():
     swater_mask = swater.gte(10)
     return swater_mask
     
-def get_s1_data(event_start, event_end, aoi, polarization='VV', pass_direction = 'ASCENDING'):
+def get_s1_data(event_start, event_end, aoi, polarization='VH', pass_direction = 'ASCENDING'):
     collection = ee.ImageCollection('COPERNICUS/S1_GRD') \
         .filter(ee.Filter.eq('instrumentMode', 'IW')) \
         .filter(ee.Filter.listContains('transmitterReceiverPolarisation', polarization)) \
@@ -100,7 +102,7 @@ def get_s2_data(event_start, event_end, aoi):
     sentinel2 = (ee.ImageCollection('COPERNICUS/S2_SR')
         .filterBounds(aoi)
         .filterDate(event_start, event_end)
-        .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 50))  # Increased threshold from 20 to 50
+        .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))  # Increased threshold from 20 to 50
         .map(mask_clouds)  # Apply cloud and shadow masking
     )
     s2_collection = sentinel2.filterDate(event_start, event_end).map(calculate_ndwi)    
@@ -113,13 +115,16 @@ def compute_flooded_s1(before, after, difference_threshold=1.25, slope_threshold
     flood_mask = difference.gt(difference_threshold)
 
     swater_mask = get_swater()
-    flooded = flood_mask.where(swater_mask, 0).updateMask(flood_mask)
+    swater_buffered = swater_mask.focal_max(100, 'square', 'meters')
+    # Apply water mask correction properly
+    flooded = flood_mask.updateMask(swater_buffered.Not())  # Removes flood pixels in water
+    # flooded = flood_mask.where(swater_mask, 0).updateMask(flood_mask)
 
-    connections = flooded.connectedPixelCount(10)
-    flooded = flooded.updateMask(connections.gte(10))
+    # connections = flooded.connectedPixelCount(10)
+    # flooded = flooded.updateMask(connections.gte(10))
     
-    slope = get_dem()
-    flooded = flooded.updateMask(slope.lt(slope_threshold))
+    # slope = get_dem()
+    # flooded = flooded.updateMask(slope.lt(slope_threshold))
 
     return flooded
 
@@ -140,36 +145,67 @@ def compute_flooded_s2(before, after):
     else:
         raise Exception("Invalid Sentinel-2 data for comparison.")
 
+def compute_area(image, label, aoi):
+    band_name = image.bandNames().get(0)  # Get the first band dynamically
+    pixel_area = image.multiply(ee.Image.pixelArea())  # Multiply by pixel area
+    stats = pixel_area.reduceRegion(**{
+        'reducer': ee.Reducer.sum(),
+        'geometry': aoi,
+        'scale': 30,
+        'maxPixels': 1e10
+    })
 
-def flood_analysis(before_event_start, before_event_end, after_event_start, after_event_end, aoi_str, sensor):
-    aoi = read_aoi(aoi_str)
-    if sensor == 's1':
-        before = get_s1_data(before_event_start, before_event_end, aoi)
-        after = get_s1_data(after_event_start, after_event_end, aoi)
-        flooded = compute_flooded_s1(before, after)
-        return Analysis('Flood Detection Sentinel1', 
-                        before_event_start, 
-                        before_event_end, 
-                        after_event_start, 
-                        after_event_end,
-                        aoi,
-                        before,
-                        after, 
-                        flooded
-                       )
-    elif sensor == 's2':
-        before = get_s2_data(before_event_start, before_event_end, aoi)
-        after = get_s2_data(after_event_start, after_event_end, aoi)
-        flooded = compute_flooded_s2(before, after)
-        return Analysis('Flood Detection Sentinel2', 
-                        before_event_start, 
-                        before_event_end, 
-                        after_event_start, 
-                        after_event_end,
-                        aoi,
-                        before.median(),
-                        after.median(), 
-                        flooded
-                       )
-    else:
-        raise Exception(f"Invalid sensor value: {sensor}. Only s1 or s2 supported")
+    # Get the area value and convert to hectares
+    area_ha = stats.getNumber(band_name).divide(10000).getInfo()
+    area_sqkm = round(area_ha / 100, 4) if area_ha else "No Data"  # Convert ha to sq km
+
+    return label, round(area_ha, 2) if area_ha else "No Data", area_sqkm
+
+
+def get_s2_rgb(start, end, aoi):
+    return ee.ImageCollection("COPERNICUS/S2") \
+    .filterBounds(aoi) \
+    .filterDate(start, end) \
+    .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20)) \
+    .median() \
+    .clip(aoi)
+
+def flood_analysis(before_event_start, before_event_end, after_event_start, after_event_end, aoi_coords):
+    aoi = read_aoi(aoi_coords)
+    # aoi = ee.Geometry.Polygon([aoi_coords])
+    
+    before_s1 = get_s1_data(before_event_start, before_event_end, aoi)
+    after_s1 = get_s1_data(after_event_start, after_event_end, aoi)
+    flooded_s1 = compute_flooded_s1(before_s1, after_s1)
+
+    before_s2 = get_s2_data(before_event_start, before_event_end, aoi)
+    after_s2 = get_s2_data(after_event_start, after_event_end, aoi)
+    flooded_s2 = compute_flooded_s2(before_s2, after_s2)
+    
+    S1_Vis = flooded_s1.visualize(**{'bands': ['VH'], 'palette': ['blue']}) 
+    S2_Vis = flooded_s2.visualize(**{'bands': ['Flood'], 'palette': ['blue']}) 
+
+    # ✅ Blend both for final merged visualization
+    Merged_Flood = ee.ImageCollection([S1_Vis, S2_Vis]).mosaic()
+
+
+    data = [
+        before_s1, 
+        after_s1, 
+        get_s2_rgb(before_event_start, before_event_end, aoi), 
+        get_s2_rgb(after_event_start, after_event_end, aoi),
+        Merged_Flood,
+        before_s2.median(),
+        after_s2.median()
+    ]
+    return data
+
+def get_histogram(image, region, scale=30, max_pixels=1e8, buckets=100):
+    """Fetch histogram data for NDWI from a given image."""
+    ndwi_histogram = image.select('NDWI').reduceRegion(
+        reducer=ee.Reducer.histogram(buckets),
+        geometry=region,
+        scale=scale,
+        maxPixels=max_pixels
+    ).get('NDWI')
+    return ee.Dictionary(ndwi_histogram).getInfo()

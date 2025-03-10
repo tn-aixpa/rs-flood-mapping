@@ -5,11 +5,15 @@ import digitalhub as dh
 
 import datetime
 
+import geopandas as gpd
+
 import flood_analysis as fa
 import geemap.foliumap as geemap
 
+import plotly.express as px
+
 st.set_page_config(
-    page_title="Overturismo", layout="wide", initial_sidebar_state="expanded"
+    page_title="Protezione Civile", layout="wide", initial_sidebar_state="expanded"
 )
 
 @st.cache_resource
@@ -20,9 +24,30 @@ def init_gee(project_name):
     private_key_json = project.get_secret("private_key_json").read_secret_value()
     ge_project = 'dh-platform-rsde'
     fa.init_gee(ge_project, service_account, private_key_json)
+    try:
+        project.get_artifact('areas').download('./shapes')
+    except Exception as e:
+        print(e)
+
 
 PROJECT_NAME = "remote-sensing"
 init_gee(PROJECT_NAME)
+
+# Function to plot histogram
+def plot_histogram(data, title='Histogram', color='blue'):
+    """Plot histogram from the Earth Engine histogram data."""
+    bucket_limits = data['bucketMeans']
+    counts = data['histogram']
+    width = bucket_limits[1] - bucket_limits[0]
+    fig = px.bar(data, y='histogram', x='bucketMeans', labels={'histogram':'Frequency', 'bucketMeans': 'NDWI'}, title=title, color_discrete_sequence=[color])
+    st.plotly_chart(fig, key=title)
+    
+    # plt.bar(bucket_limits, counts, width=width, color=color, alpha=0.7)
+    # plt.title(title)
+    # plt.xlabel('NDWI')
+    # plt.ylabel('Frequency')
+    # plt.grid(True)
+    
 
 with st.sidebar:
     selected = option_menu(
@@ -34,10 +59,13 @@ with st.sidebar:
     )
 
 areas = [
-    { "name": "Alto Garda", "date": "2020-10-03" },
-    { "name": "Val di Fiemme e Val di Non", "date": "2018-10-28"},
-    { "name": "Val di Fassa e Val di Non", "date": "2018-07-03"}
+    { "name": "Alto Garda", "date": "2020-10-03", "shape": "Alto-Garda.shp" },
+    { "name": "Val di Fiemme e Val di Non", "date": "2018-10-28" , "shape": "Val-di-NON.shp"},
+    { "name": "Val di Fassa e Val di Non", "date": "2018-07-03" , "shape": "Val-di-Fassa.shp"}
 ]
+if 'areas' not in st.session_state:
+    st.session_state['areas'] = {}
+
 aoi_coordinates_str = '10.42,46.29; 11.62,46.29; 11.62,45.73; 10.42,45.73'
 
 
@@ -53,36 +81,49 @@ before_event_start = (date - datetime.timedelta(days=30)).date()
 before_event_end = (date - datetime.timedelta(days=3)).date()
 after_event_start = (date + datetime.timedelta(days=3)).date()
 after_event_end = (date + datetime.timedelta(days=30)).date()
-# c1,c2 = st.columns([1,1])
-# with c1:
-#     before_event_start = st.date_input("Inizio periodo prima dell'evento", '2018-10-05')
-#     before_event_end = st.date_input("Fine periodo prima dell'evento", '2018-10-26')
+area = gpd.read_file(f'./shapes/{option["shape"]}').to_crs(epsg=4326)
+coords = [tuple(x) for x in area.get_coordinates().to_numpy()]
 
-# with c2:
-#     after_event_start = st.date_input("Inizio periodo dopo l'evento", '2018-10-27')
-#     after_event_end = st.date_input("Fine periodo dopo l'evento", '2018-11-20')
-
+Map_Flood = geemap.Map(center=[46.0, 11.0], zoom=8)
 
 with st.spinner("Esecuzione in corso...", show_time=True):
-    res1 = fa.flood_analysis(
-        str(before_event_start), str(before_event_end), str(after_event_start), str(after_event_end), aoi_coordinates_str, 's1')
-    res2 = fa.flood_analysis(
-        str(before_event_start), str(before_event_end), str(after_event_start), str(after_event_end), aoi_coordinates_str, 's2')
 
-    # Create a map and add Sentinel-1 layers
-    Map_S1 = geemap.Map(center=[46.0, 11.0], zoom=10)  # Adjust center and zoom level as needed
-    
-    # Add before and after flood Sentinel-1 layers
-    Map_S1.addLayer(res1.before, {'min': -25, 'max': 0}, 'S1 - Before Flood')
-    Map_S1.addLayer(res1.after, {'min': -25, 'max': 0}, 'S1 - After Flood')
-    
-    # Add Sentinel-1 flood extent layer
-    Map_S1.addLayer(res1.diff, {'palette': 'red'}, 'S1 - Flood Extent')
-    
-    # Add AOI
-    # Map_S1.addLayer(res1.aoi, {}, 'AOI')
-    
-    # Display the map
-    Map_S1.addLayerControl()  # Add layer control to toggle layers on/off
-    Map_S1.to_streamlit(height=600)
+    # Map with Flood analysis layers
+    if option['name'] not in st.session_state['areas']:    
+        data = fa.flood_analysis(
+            str(before_event_start), str(before_event_end), str(after_event_start), str(after_event_end), aoi_coordinates_str)
 
+        # Calculate histograms
+        aoi = fa.read_aoi(aoi_coordinates_str)
+        hist_before = fa.get_histogram(data[5], aoi)
+        hist_after = fa.get_histogram(data[6], aoi)
+        
+        # ✅ Add Sentinel-1 before and after layers (initially turned off)
+        Map_Flood.addLayer(data[0], {'min': -25, 'max': 0}, 'S1 - Before Flood', shown=False)
+        Map_Flood.addLayer(data[1], {'min': -25, 'max': 0}, 'S1 - After Flood', shown=False)
+        
+        # ✅ Add Sentinel-2 RGB Layers (initially turned off)
+        Map_Flood.addLayer(data[2], {'bands': ['B4', 'B3', 'B2'], 'min': 0, 'max': 3000},
+                           'S2 - Before Flood (RGB)', shown=False)
+        Map_Flood.addLayer(data[3], {'bands': ['B4', 'B3', 'B2'], 'min': 0, 'max': 3000},
+                           'S2 - After Flood (RGB)', shown=False)
+        
+        # ✅ Add Merged Flood Layer (initially turned off)
+        Map_Flood.addLayer(data[4], {}, 'Flood Extent (S1 + S2)', shown=True)
+        
+        Map_Flood.add_gdf(area, "AOI")
+        # Display the map
+        Map_Flood.addLayerControl()  # Add layer control to toggle layers on/off
+
+        st.session_state['areas'][option['name']] = (Map_Flood,hist_before,hist_after)
+    else:
+        Map_Flood,hist_before,hist_after = st.session_state['areas'][option['name']]
+
+    Map_Flood.to_streamlit(height=600)
+
+    c1,c2 = st.columns(2)    
+    with c1:
+        plot_histogram(hist_before, 'Pre-Flood NDWI Histogram', 'blue')
+    with c2:
+        plot_histogram(hist_after, 'Post-Flood NDWI Histogram', 'red')
+        
