@@ -60,13 +60,14 @@ with st.sidebar:
 
 areas = [
     { "name": "Alto Garda", "date": "2020-10-03", "shape": "Alto-Garda.shp" },
-    { "name": "Val di Fiemme e Val di Non", "date": "2018-10-28" , "shape": "Val-di-NON.shp"},
-    { "name": "Val di Fassa e Val di Non", "date": "2018-07-03" , "shape": "Val-di-Fassa.shp"}
+    { "name": " Val di Non", "date": "2018-10-28" , "shape": "Val-di-NON.shp"},
+    { "name": "Val di Fassa", "date": "2018-07-03" , "shape": "Val-di-Fassa.shp"}
 ]
 if 'areas' not in st.session_state:
     st.session_state['areas'] = {}
 
-aoi_coordinates_str = '10.42,46.29; 11.62,46.29; 11.62,45.73; 10.42,45.73'
+# aoi_coordinates_str = '10.42,46.29; 11.62,46.29; 11.62,45.73; 10.42,45.73'
+aoi_coordinates_str = '10.20, 46.50; 11.80, 46.50; 11.80, 45.50; 10.20, 45.50'
 
 
 st.title("Analisi Allagamenti")
@@ -95,9 +96,13 @@ with st.spinner("Esecuzione in corso...", show_time=True):
 
         # Calculate histograms
         aoi = fa.read_aoi(aoi_coordinates_str)
-        hist_before = fa.get_histogram(data[5], aoi)
-        hist_after = fa.get_histogram(data[6], aoi)
-        
+        try:
+            hist_before = fa.get_histogram(data[5], aoi)
+            hist_after = fa.get_histogram(data[6], aoi)
+        except:
+            hist_before = None
+            hist_after = None
+            
         # ✅ Add Sentinel-1 before and after layers (initially turned off)
         Map_Flood.addLayer(data[0], {'min': -25, 'max': 0}, 'S1 - Before Flood', shown=False)
         Map_Flood.addLayer(data[1], {'min': -25, 'max': 0}, 'S1 - After Flood', shown=False)
@@ -119,11 +124,31 @@ with st.spinner("Esecuzione in corso...", show_time=True):
     else:
         Map_Flood,hist_before,hist_after = st.session_state['areas'][option['name']]
 
+    # from ipyleaflet import WidgetControl
+    # import ipywidgets as widgets
+    # # ✅ Create Custom Legend Using ipywidgets (Blue for Flood Extent)
+    # legend_html = widgets.HTML(
+    #     value=f"""
+    #     <div style="background-color: white; padding: 10px; border: 2px solid black;">
+    #         <h4>Legend</h4>
+    #         <div style="display: flex; align-items: center;">
+    #             <div style="width: 15px; height: 15px; background-color: blue; margin-right: 5px;"></div>Flood Extent
+    #         </div>
+    #         <div style="margin-top: 10px;"><strong>Total Inundated Area:</strong> 100 sq km</div>
+    #     </div>
+    #     """
+    # )
+    
+    # # ✅ Add Legend to Map
+    # legend_control = WidgetControl(widget=legend_html, position="bottomright")
+    # Map_Flood.add_widget(legend_control)
+    
     Map_Flood.to_streamlit(height=600)
 
-    c1,c2 = st.columns(2)    
-    with c1:
-        plot_histogram(hist_before, 'Pre-Flood NDWI Histogram', 'blue')
-    with c2:
-        plot_histogram(hist_after, 'Post-Flood NDWI Histogram', 'red')
+    if hist_before and hist_after:
+        c1,c2 = st.columns(2)    
+        with c1:
+            plot_histogram(hist_before, 'Pre-Flood NDWI Histogram', 'blue')
+        with c2:
+            plot_histogram(hist_after, 'Post-Flood NDWI Histogram', 'red')
         
