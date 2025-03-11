@@ -61,7 +61,7 @@ with st.sidebar:
 areas = [
     { "name": "Alto Garda", "date": "2020-10-03", "shape": "Alto-Garda.shp" },
     { "name": " Val di Non", "date": "2018-10-28" , "shape": "Val-di-NON.shp"},
-    { "name": "Val di Fassa", "date": "2018-07-03" , "shape": "Val-di-Fassa.shp"}
+    { "name": "Val di Fiemme", "date": "2018-07-03" , "shape": "Val-di-Fassa.shp"}
 ]
 if 'areas' not in st.session_state:
     st.session_state['areas'] = {}
@@ -116,7 +116,7 @@ with st.spinner("Esecuzione in corso...", show_time=True):
         # ✅ Add Merged Flood Layer (initially turned off)
         Map_Flood.addLayer(data[4], {}, 'Flood Extent (S1 + S2)', shown=True)
         
-        Map_Flood.add_gdf(area, "AOI")
+        Map_Flood.add_gdf(area, "AOI", info_mode=None)
         # Display the map
         Map_Flood.addLayerControl()  # Add layer control to toggle layers on/off
 
