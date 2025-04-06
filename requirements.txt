@@ -7,7 +7,6 @@ ipyleaflet
 xarray
 rasterio
 localtileserver
-pydantic==1.10.21
-digitalhub==0.8.1
 streamlit_option_menu
 geopandas==1.0.1
+contextily==1.6.2
