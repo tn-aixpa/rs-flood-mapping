@@ -101,7 +101,7 @@ if selected == "Geologico":
     # Create a map and add Sentinel-1 layers
     Map = geemap.Map(center=[46.15, 11.72], zoom=12)  # Adjust center and zoom level as needed
     
-    vis_params = {'min': -0.6, 'max': 0.6, 'palette':palette}
+    vis_params = {'min': -0.06, 'max': 0.06, 'palette':palette}
     # Add before and after flood Sentinel-1 layers
     Map.addLayer(ew_displ_masked, vis_params, 'Mappa di scostamento est-ovest')
     #Map.addLayer(coh, {'min': 0, 'max': 1}, 'Mappa di coerenza')
