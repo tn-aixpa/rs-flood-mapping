@@ -88,10 +88,10 @@ if selected == "Geologico":
     if True: #'geological' not in st.session_state:    
         crs = str(src.crs)
         transform = list(src.transform)[:6]
-        ew_displ_map = np.array(src.read([1]))
+        ew_displ_map = np.array(src.read([1]))[0].T
         ew_displ_map[np.isnan(ew_displ_map)] = -1000
         ew_displ = geemap.numpy_to_ee(ew_displ_map,crs=crs,transform=transform)
-        ew_displ_masked = ew_displ.updateMask(ew_displ.eq(-1000))
+        ew_displ_masked = ew_displ.updateMask(ew_displ.neq(-1000))
         st.session_state['geological'] = {'ew_displ_masked': ew_displ_masked}
     else: 
         ew_displ_masked = st.session_state['geological']['ew_displ_masked']
@@ -116,7 +116,7 @@ if selected == "Geologico":
     show(src, ax=ax[0])
     ax[0].axis('off')
     cx.add_basemap(ax[0], crs=str(src.crs))
-    show(src, ax=ax[0], title='Mappa di scostamento Est-Ovest Canal San Bovo')
+    show(src, ax=ax[0], title='Mappa di scostamento Est-Ovest Canal San Bovo',cmap='jet')
     # Create a legend for the blue line
     line1 = mpatches.Patch(color='#30123b', label='>5cm Ovest')
     line2 = mpatches.Patch(color='#4455c4', label='4-5cm Ovest')
