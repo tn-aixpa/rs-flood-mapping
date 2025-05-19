@@ -1,0 +1,7 @@
+*.zip
+*.npy
+*.pkl
+*.pyc
+output
+bosco
+*.env
