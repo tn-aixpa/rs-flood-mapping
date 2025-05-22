@@ -118,17 +118,18 @@ if __name__ == "__main__":
     input1 = json_input['input1']
     project_name=os.environ["PROJECT_NAME"]
     input2 = json_input['input2']
-    years = json_input['input3'] #['2018', '2019']
-    artifact_name=json_input['input4']
-
-    print(f"input1: {input1}, input2:{input2}, years:{years}, artifact_name:{artifact_name}, project:{project_name}")
     
-    output_file = os.path.join(outpath, "flood_mask")
+    print(f"input1: {input1}, input2:{input2}, project:{project_name}")
+    
+    output_folder = os.path.join(outpath, "flood_mask")
     project_name=os.environ["PROJECT_NAME"]
     project = dh.get_or_create_project(project_name)
     # download data
-    data = project.get_artifact(input2)
-    datapath =  data.download(datapath, overwrite=True)
-    run_pipeline_zip(datapath, datapath, output_file)
+    shp_data = project.get_artifact(input1)
+    shp_path =  shp_data.download(datapath, overwrite=True)
+    sentinel_data = project.get_artifact(input2)
+    sentinel_zip_path=os.path.join(datapath, "sentinel_zips")
+    sentinel_zip_path = sentinel_data.download(sentinel_zip_path, overwrite=True) 
+    run_pipeline_zip(sentinel_zip_path, shp_path, output_folder)
     print(f"Upoading artifact: {artifact_name}, {artifact_name}")
-    upload_artifact(artifact_name=artifact_name,project_name=project_name,src_path=outpath)
+    upload_artifact(artifact_name=artifact_name,project_name=project_name,src_path=output_folder)

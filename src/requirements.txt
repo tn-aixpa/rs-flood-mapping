@@ -8,4 +8,4 @@ scipy==1.8.1
 Shapely==2.0.7
 statsmodels==0.14.4
 tqdm==4.67.1
-digitalhub==0.11.b3
+digitalhub==0.11.0b5
