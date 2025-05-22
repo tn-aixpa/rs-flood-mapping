@@ -6,7 +6,7 @@ source .bashrc
 echo "Flood mapping scenario"
 gdal-config --version
 python --version
-printenv
+#printenv
 cd /app
-python main.py "{'input1':$1, 'input2':$2}"
+python main.py "{'input1':'$1', 'input2':'$2','input3':'$3'}"
 exit
