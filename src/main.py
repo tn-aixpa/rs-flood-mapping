@@ -8,6 +8,8 @@ from utils.skd_handler import upload_artifact
 import json
 
 def shp_to_wkt(shp_path):
+    print(f"Reading shapefile: {shp_path}")
+    print(os.listdir(shp_path))
     r = shapefile.Reader(shp_path)
     shapes = [shape(s.__geo_interface__) for s in r.shapes()]
     merged = MultiPolygon(shapes)
@@ -121,21 +123,22 @@ if __name__ == "__main__":
     input1 = json_input['input1']
     project_name=os.environ["PROJECT_NAME"]
     input2 = json_input['input2']
-    artifact_name=json_input['input3']
+    shpfile_name=json_input['input3']
+    artifact_name = json_input['input4']
 
-    print(f"input1: {input1}, input2:{input2}, project:{project_name}")
+    print(f"input1: {input1}, input2:{input2}, input3:{shpfile_name}, input4:{artifact_name}, project:{project_name}")
        
 
     # shape data
     project = dh.get_or_create_project(project_name)
     shp_artifact = project.get_artifact(input1)
     shp_path =  shp_artifact.download(datapath, overwrite=True)
-
+    shapfile_path = os.path.join(datapath, shpfile_name) #"AOI_Rec.shp"
     # sentinel data
     sentinel_artifact = project.get_artifact(input2)
     sentinel_zip_path = sentinel_artifact.download(sentinel_zip_path, overwrite=True) 
     
-    run_pipeline_zip(sentinel_zip_path, shp_path, output_folder)
+    run_pipeline_zip(sentinel_zip_path, shapfile_path, output_folder)
 
     print(f"Upoading artifact: {artifact_name}, {artifact_name}")
     upload_artifact(artifact_name=artifact_name,project_name=project_name,src_path=output_folder)
