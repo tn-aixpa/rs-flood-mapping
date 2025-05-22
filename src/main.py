@@ -1,9 +1,11 @@
 import os
+import sys
 from snapista import Graph, Operator, TargetBand, TargetBandDescriptors
 from shapely.geometry import shape, MultiPolygon
 import shapefile
 import digitalhub as dh
 from utils.skd_handler import upload_artifact
+import json
 
 def shp_to_wkt(shp_path):
     r = shapefile.Reader(shp_path)
