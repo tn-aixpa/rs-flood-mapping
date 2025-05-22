@@ -8,5 +8,5 @@ gdal-config --version
 python --version
 #printenv
 cd /app
-python main.py "{'input1':'$1', 'input2':'$2','input3':'$3'}"
+python main.py "{'input1':'$1', 'input2':'$2','input3':'$3','input4':'$4'}"
 exit

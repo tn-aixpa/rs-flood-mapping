@@ -9,7 +9,6 @@ import json
 
 def shp_to_wkt(shp_path):
     print(f"Reading shapefile: {shp_path}")
-    print(os.listdir(shp_path))
     r = shapefile.Reader(shp_path)
     shapes = [shape(s.__geo_interface__) for s in r.shapes()]
     merged = MultiPolygon(shapes)
