@@ -9,4 +9,4 @@ Shapely==2.0.7
 statsmodels==0.14.4
 tqdm==4.67.1
 cryptography==38.0.4
-digitalhub==0.11.0b5
+digitalhub==0.11.0b6
