@@ -6,7 +6,7 @@ source .bashrc
 echo "Flood mapping scenario"
 gdal-config --version
 python --version
-export PATH="/home/nonroot/miniconda3/snap/bin:$PATH"
+export PATH="/home/nonroot/miniforge3/snap/bin:$PATH"
 cd /app
 python main.py "{'input1':'$1', 'input2':'$2','input3':'$3','input4':'$4'}"
 exit
