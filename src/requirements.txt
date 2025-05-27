@@ -1,12 +1,33 @@
-PyShp==2.3.1
-geopandas==0.13.0
-joblib==1.4.2
-matplotlib==3.5.3
-numpy>=1.20.0
-rasterio==1.4.3
-scipy==1.8.1
-Shapely==2.0.7
-statsmodels==0.14.4
-tqdm==4.67.1
 cryptography==38.0.4
 digitalhub==0.11.0b6
+
+
+# -------------------------------------------
+# Core Scientific Libraries
+# -------------------------------------------
+numpy==1.24.4
+matplotlib==3.7.1
+tqdm==4.65.0
+
+# -------------------------------------------
+# Raster and Vector Geospatial Processing
+# -------------------------------------------
+rasterio==1.3.8
+geopandas==0.13.2
+shapely==2.0.1
+fiona>=1.8.21         # Required by geopandas
+pyproj>=3.4.0         # CRS and projection transformations
+
+# -------------------------------------------
+# Visualization Tools (Optional for Jupyter/Mapping)
+# -------------------------------------------
+Pillow==9.5.0         # Image I/O
+contextily==1.3.0     # Web tile basemaps
+folium==0.14.0        # Interactive leaflet maps
+ipyleaflet==0.17.3    # Jupyter-compatible map widget
+
+# -------------------------------------------
+# Geometry & Shapefile Utilities
+# -------------------------------------------
+pyshp==2.3.1          # Pure Python shapefile library
+pygeoif==0.7          # WKT/Geo interface objects

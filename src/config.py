@@ -1,30 +1,51 @@
 import os
 from glob import glob
+import datetime
 
-# Automatically get the path to this config file's folder
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# === Input Sentinel-1 ZIP ===
-S1_ZIP_PATH = os.path.join(BASE_DIR, "data", "sentinel_zips", "S1B_IW_GRDH_1SDV_20201003T052640_20201003T052705_023644_02CEC7_E20C.SAFE.zip")
-ZIP_FILES = [S1_ZIP_PATH]  # Keep it a list for compatibility
 
-# === Optional: For batch processing instead ===
-# ZIP_FOLDER = os.path.join(BASE_DIR, "data", "sentinel_zips")
-# ZIP_FILES = glob(os.path.join(ZIP_FOLDER, "*.zip"))
+CONFIG = {
+    # Input folders
+    "s1_zip_folder": os.path.join(BASE_DIR, "data", "sentinel_zips"),
+    "s2_pre_ndwi_folder": os.path.join(BASE_DIR, "data", "sentinel2", "Sentinel-2(Pre-NDWI)"),
+    "s2_post_ndwi_folder": os.path.join(BASE_DIR, "data", "sentinel2", "Sentinel-2(post-NDWI)"),
 
-# === Output path (used as base for export) ===
-OUTPUT_PATH = os.path.join(BASE_DIR, "data", "final_mask")
-
-# === Date & Settings ===
-FLOOD_DATE = "2020-10-02"
-POLARIZATION = "VV"
-
-# === Shapefile and Output Directory ===
-SHAPEFILE_PATH = os.path.join(BASE_DIR, "data", "AOI_Rec.shp")
-OUTPUT_FOLDER = os.path.join(BASE_DIR, "data", "flood_outputs")
-
-# Ensure output folder exists
-os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+    # Shapefile
+    "shapefile_path": os.path.join(BASE_DIR, "data", "AOI_Garda" ,"AOI_Rec.shp"),
+    "lakes_shapefile": os.path.join(BASE_DIR, "data", "Lakes_TN", "idrspacq.shp"), #lakes data shapefile
 
 
+    # Output folder (everything goes here)
+    "output_folder": os.path.join(BASE_DIR, "data", "flood_outputs"),
+    "temp_folder": os.path.join(BASE_DIR, "data", "flood_outputs", "temp"),  # Added temp folder
+ 
 
+    # Output files
+    "s1_tiff": os.path.join(BASE_DIR, "data", "flood_outputs", "S1-flood_layer.tif"),
+    "s2_tiff": os.path.join(BASE_DIR, "data", "flood_outputs", "S2_flood_mask.tif"),
+    "combined_tiff": os.path.join(BASE_DIR, "data", "flood_outputs", "flood_detection_layer.tif"),
+    "combined_shapefile": os.path.join(BASE_DIR, "data", "flood_outputs", "flood_detection_layer.shp"),
+    "metadata_output_path": os.path.join(BASE_DIR, "data", "flood_outputs", "flood_detection_layer_metadata.json"),
+
+
+    # Parameters
+    "aoi_name": "Garda",
+    #"before_flood": ["2020-09-01", "2020-09-30"],
+    #"after_flood": ["2020-10-01", "2020-10-31"],
+    "target_crs": "EPSG:25832",
+    "flood_date": datetime.datetime.strptime("20201002", "%Y%m%d"),
+    "polarization": "VV", # VV or VH
+    "dem_threshold": 500, # 200-700
+    "slope_threshold": 7, # 5- 15
+    "noise_min_pixels": 5 # change accordingly
+}
+
+# Make sure required folders exist
+os.makedirs(CONFIG["output_folder"], exist_ok=True)
+os.makedirs(CONFIG["temp_folder"], exist_ok=True)
+os.makedirs(os.path.join(BASE_DIR, "logs"), exist_ok=True)
+
+
+# Glob sentinel-1 zip files dynamically based on config path
+ZIP_FILES = glob(os.path.join(CONFIG["s1_zip_folder"], "*.zip"))
