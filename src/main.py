@@ -431,32 +431,32 @@ if __name__ == "__main__":
     args = sys.argv[1].replace("'","\"")
     json_input = json.loads(args)
     project_name=os.environ["PROJECT_NAME"]
-    input1 = json_input['input1'] # Sentine2 pre-flood
-    input2 = json_input['input2'] # Sentinel2 post-flood
-    input3 = json_input['input3'] # Sentinel1 post-flood
-    input4 = json_input['input4'] # AOI Shape aritfact
-    input5 = json_input['input5'] # AOI Shpe file name
-    input6 = json_input['input6'] # Lake Shape artifact
-    input7 = json_input['input7'] # Lake Shape file name
-    input8 = json_input['input8'] # Rivers Shape artifact
-    input9 = json_input['input9'] # Rivers Shape file name
-    input10 = json_input['input10'] # Output artifact name
-    input11 = json_input['input11'] # flood date
-    input12 = json_input['input12'] # target_crs
-    input13 = json_input['input13'] # polarization (VV or VH)
-    input14 = json_input['input14'] # dem_threshold (200-700)
-    input15 = json_input['input15'] # slope_threshold (5- 15)
-    input16 = json_input['input16'] # noise_min_pixels 5
-    input17 = json_input['input17'] # river_buffer_meters 2
+    s1PostFloodArtifactName = json_input['s1PostFlood'] # S1 post-flood
+    s2PostFloodArtifactName = json_input['s2PostFlood'] # S2 post-flood
+    s2PreFloodArtifactName = json_input['s2PreFlood'] # S2 pre-flood
+    aoiShapeArtifactName = json_input['AOIShapeArtifact'] # AOI Shape aritfact
+    aoiShapeFileName = json_input['AOIShapeName'] # AOI Shpe file name
+    lakeShapeArtifactName = json_input['lakeShapeArtifactName'] # Lake Shape artifact
+    lakeShapeFileName = json_input['lakeShapeFileName'] # Lake Shape file name
+    riverShapeArtifactName = json_input['riverShapeArtifactName'] # Rivers Shape artifact
+    riverShapeFileName = json_input['riverShapeFileName'] # Rivers Shape file name
+    outputArtifactName = json_input['output'] # Output artifact name
+    floodDate = json_input['eventDate'] # flood date
+    target_crs = json_input['targetCRS'] # "EPSG:25832"
+    polarization = json_input['polarization'] # polarization (VV or VH)
+    dem_threshold = json_input['dem_threshold'] # dem_threshold (200-700)
+    slope_threshold = json_input['slope_threshold'] # slope_threshold (5- 15)
+    noise_min_pixels = json_input['noise_min_pixels'] # noise_min_pixels 5
+    river_buffer_meters = json_input['river_buffer_meters'] # river_buffer_meters 2
     
     BASE_DIR = '.'
     # Input folders
     s1_zip_folder = os.path.join(BASE_DIR, "data", "sentinel_zips")
     s2_pre_ndwi_folder = os.path.join(BASE_DIR, "data", "sentinel2", "Sentinel-2(Pre-NDWI)")
     s2_post_ndwi_folder = os.path.join(BASE_DIR, "data", "sentinel2", "Sentinel-2(post-NDWI)")
-    shapefile_path = os.path.join(BASE_DIR, "data", input4 , input5) # "AOI_Garda" ,"AOI_Rec.shp"
-    lakes_shapefile = os.path.join(BASE_DIR, "data", input6, input7) # "Lakes_TN", "idrspacq.shp"
-    rivers_shapefile = os.path.join(BASE_DIR, "data", input8, input9) # "Rivers_TN", "cif_pta2022_v.shp"
+    shapefile_path = os.path.join(BASE_DIR, "data", aoiShapeArtifactName, aoiShapeFileName) # "AOI_Garda" ,"AOI_Rec.shp"
+    lakes_shapefile = os.path.join(BASE_DIR, "data", lakeShapeArtifactName, lakeShapeFileName) # "Lakes_TN", "idrspacq.shp"
+    rivers_shapefile = os.path.join(BASE_DIR, "data", riverShapeArtifactName, riverShapeFileName) # "Rivers_TN", "cif_pta2022_v.shp"
 
     # Output folder (everything goes here)
     output_folder = os.path.join(BASE_DIR, "data", "flood_outputs")
@@ -474,50 +474,45 @@ if __name__ == "__main__":
     os.makedirs(s1_zip_folder, exist_ok=True)
     os.makedirs(s2_post_ndwi_folder, exist_ok=True)
     os.makedirs(s2_pre_ndwi_folder, exist_ok=True)
-    os.makedirs(os.path.join(BASE_DIR, "data", input4), exist_ok=True)  # Ensure AOI folder exists
-    os.makedirs(os.path.join(BASE_DIR, "data", input6), exist_ok=True)  # Ensure Lakes folder exists
-    os.makedirs(os.path.join(BASE_DIR, "data", input8), exist_ok=True)  # Ensure Rivers folder exists
+    os.makedirs(os.path.join(BASE_DIR, "data", aoiShapeArtifactName), exist_ok=True)  # Ensure AOI folder exists
+    os.makedirs(os.path.join(BASE_DIR, "data", lakeShapeArtifactName), exist_ok=True)  # Ensure Lakes folder exists
+    os.makedirs(os.path.join(BASE_DIR, "data", riverShapeArtifactName), exist_ok=True)  # Ensure Rivers folder exists
     # Ensure output folders exist
     os.makedirs(output_folder, exist_ok=True)
     # Ensure temp folder exists
     os.makedirs(temp_folder, exist_ok=True)
 
-    # Download (Shapefile, Zips)
+    
     project = dh.get_or_create_project(project_name)
-    # Download artifacts
-    print(f"Downloading AOI shape artifact for project: {project_name} Name: {input4}")
-    shp_artifact = project.get_artifact(input4)
-    shp_path =  shp_artifact.download(os.path.join(BASE_DIR, "data", input4), overwrite=True)
-    print(f"Downloading lake shape artifact for project: {project_name} Name: {input6}")
-    lake_artifact = project.get_artifact(input6)
-    lake_shp_path = lake_artifact.download(os.path.join(BASE_DIR, "data", input6), overwrite=True)
-    print(f"Downloading River artifacts for project: {project_name} Name: {input8}")
-    rivers_artifact = project.get_artifact(input8)
-    rivers_shp_path = rivers_artifact.download(os.path.join(BASE_DIR, "data", input8), overwrite=True)
-    print(f"Downloading Sentinel-1 artifact for project: {project_name} Name: {input1}")
-    sentinel1_artifact = project.get_artifact(input1)
+  
+    # Download Sentinel-1 and Sentinel-2 artifacts
+    print(f"Downloading Sentinel-1 artifact for project: {project_name} Name: {s1PostFloodArtifactName}")
+    sentinel1_artifact = project.get_artifact(s1PostFloodArtifactName)
     sentinel1_zip_path = sentinel1_artifact.download(s1_zip_folder, overwrite=True)
-    print(f"Downloading Sentinel-2 post-flood artifact for project: {project_name} Name: {input2}")
-    sentinel2_postflood_artifact = project.get_artifact(input2)
+    print(f"Downloading Sentinel-2 post-flood artifact for project: {project_name} Name: {s2PostFloodArtifactName}")
+    sentinel2_postflood_artifact = project.get_artifact(s2PostFloodArtifactName)
     sentinel2_zip_path2 = sentinel2_postflood_artifact.download(s2_post_ndwi_folder, overwrite=True)
-    print(f"Downloading Sentinel-2 pre-flood artifact for project: {project_name} Name: {input3}")
-    sentinel2_preflood_artifact = project.get_artifact(input3)
+    print(f"Downloading Sentinel-2 pre-flood artifact for project: {project_name} Name: {s2PreFloodArtifactName}")
+    sentinel2_preflood_artifact = project.get_artifact(s2PreFloodArtifactName)
     sentinel2_zip_path1 = sentinel2_preflood_artifact.download(s2_pre_ndwi_folder, overwrite=True)
-    artifact_name = input10
 
-    print(f"flood date: {input11}")
+    # Download Shapefile
+    print(f"Downloading AOI shape artifact for project: {project_name} Name: {aoiShapeArtifactName}")
+    shp_artifact = project.get_artifact(aoiShapeArtifactName)
+    shp_path =  shp_artifact.download(os.path.join(BASE_DIR, "data", aoiShapeArtifactName), overwrite=True)
+    print(f"Downloading lake shape artifact for project: {project_name} Name: {lakeShapeArtifactName}")
+    lake_artifact = project.get_artifact(lakeShapeArtifactName)
+    lake_shp_path = lake_artifact.download(os.path.join(BASE_DIR, "data", lakeShapeArtifactName), overwrite=True)
+    print(f"Downloading River artifacts for project: {project_name} Name: {riverShapeArtifactName}")
+    rivers_artifact = project.get_artifact(riverShapeArtifactName)
+    rivers_shp_path = rivers_artifact.download(os.path.join(BASE_DIR, "data", riverShapeArtifactName), overwrite=True)
+
+    print(f"flood date: {floodDate}")
 
     # Set up configuration
-    aoi_name = input5
-    flood_date = datetime.strptime(input11, "%Y%m%d") # "20201002"
-    target_crs = input12; # "EPSG:25832" #input12
-    polarization = input13, # VV or VH #input13
-    dem_threshold = input14, # 200-700 #input14
-    slope_threshold = input15, # 5- 15 #input15
-    noise_min_pixels= input16 # input16
-    river_buffer_meters= input17 # input17
-
-    
+    aoi_name = aoiShapeArtifactName
+    flood_date = datetime.strptime(floodDate, "%Y%m%d") # "20201002"
+        
     # Run the pipeline
     print("Starting Flood Mapping Pipeline")
     aoi = load_aoi()
@@ -539,6 +534,6 @@ if __name__ == "__main__":
 
     print("Pipeline complete.")
 
-    print(f"Upoading artifact: {artifact_name}, {artifact_name}")
-    upload_artifact(artifact_name=artifact_name,project_name=project_name,src_path=output_folder)
+    print(f"Upoading artifact: {outputArtifactName}")
+    upload_artifact(artifact_name=outputArtifactName,project_name=project_name,src_path=output_folder)
 
