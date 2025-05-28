@@ -205,13 +205,13 @@ def write_metadata():
     try:
         metadata = {
             "aoi_name": aoi_name,
-            "flood_date": flood_date,
+            "flood_date": flood_date.strftime("%Y-%m-%d %H:%M:%S"),
             "sentinel1_used": Path(s1_tiff).exists(),
             "sentinel2_used": Path(s2_tiff).exists(),
             "s1_image_count": len(glob(os.path.join(s1_zip_folder, "*.zip"))),
             "s2_pre_ndwi_count": len(glob(os.path.join(s2_pre_ndwi_folder, "*.tif"))),
             "s2_post_ndwi_count": len(glob(os.path.join(s2_post_ndwi_folder, "*.tif"))),
-            "processed_on": datetime.now(),
+            "processed_on": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "output_tiff": combined_tiff,
             "output_shapefile": combined_shapefile
         }
@@ -420,13 +420,14 @@ def batch_process():
 
 
 
+# Example command to run the script:
+# python main.py '{"input1": "sentinel2_post_flood","input2": "sentinel2_pre_flood","input3": "sentinel1_post_flood","input4": "AOI_Garda","input5":"AOI_Rec.shp","input6": "Lakes_TN", "input7": "idrspacq.shp","input8": "Rivers_TN", "input9": "cif_pta2022_v.shp", "input10": "output_flood_mask","input11": "20201002", "input12": "EPSG:25832", "input13": "VV", "input14": 200, "input15": 5, "input16": 5, "input17": 2}'
+
+
 if __name__ == "__main__":
 
     global target_crs, flood_date, polarization, dem_threshold, slope_threshold, noise_min_pixels, shapefile_path, lakes_shapefile, combined_shapefile, combined_tiff, s1_tiff, s2_tiff, metadata_output_path, output_folder, temp_folder,before_flood,artifact_name,after_flood
     
-    #before_flood = ["2020-09-01", "2020-09-30"]
-    #after_flood = ["2020-10-01", "2020-10-31"]
-
     args = sys.argv[1].replace("'","\"")
     json_input = json.loads(args)
     project_name=os.environ["PROJECT_NAME"]
@@ -441,6 +442,12 @@ if __name__ == "__main__":
     input9 = json_input['input9'] # Rivers Shape file name
     input10 = json_input['input10'] # Output artifact name
     input11 = json_input['input11'] # flood date
+    input12 = json_input['input12'] # target_crs
+    input13 = json_input['input13'] # polarization (VV or VH)
+    input14 = json_input['input14'] # dem_threshold (200-700)
+    input15 = json_input['input15'] # slope_threshold (5- 15)
+    input16 = json_input['input16'] # noise_min_pixels 5
+    input17 = json_input['input17'] # river_buffer_meters 2
     
     BASE_DIR = '.'
     # Input folders
@@ -477,19 +484,19 @@ if __name__ == "__main__":
     # sentinel2_zip_path2 = sentinel2_postflood_artifact.download(s2_post_ndwi_folder, overwrite=True)
     # sentinel2_preflood_artifact = project.get_artifact(input3)
     # sentinel2_zip_path1 = sentinel2_preflood_artifact.download(s2_pre_ndwi_folder, overwrite=True)
-    artifact_name = input8
+    artifact_name = input10
 
     print(f"flood date: {input11}")
 
     # Set up configuration
     aoi_name = input5
-    target_crs = "EPSG:25832" #input
     flood_date = datetime.strptime(input11, "%Y%m%d") # "20201002"
-    polarization = "VV", # VV or VH #input
-    dem_threshold = 500, # 200-700 #input
-    slope_threshold = 7, # 5- 15 #input
-    noise_min_pixels= 5 # input
-    river_buffer_meters=2 # input
+    target_crs = input12; # "EPSG:25832" #input12
+    polarization = input13, # VV or VH #input13
+    dem_threshold = input14, # 200-700 #input14
+    slope_threshold = input15, # 5- 15 #input15
+    noise_min_pixels= input16 # input16
+    river_buffer_meters= input17 # input17
 
     # Make sure required folders exist
     os.makedirs(output_folder, exist_ok=True)
@@ -497,18 +504,18 @@ if __name__ == "__main__":
     os.makedirs(os.path.join(BASE_DIR, "logs"), exist_ok=True)
     # Run the pipeline
     print("Starting Flood Mapping Pipeline")
-    aoi = load_aoi()
+    # aoi = load_aoi()
 
-    ndwi_post, transform, crs, height, width = compute_mean_ndwi(
-        glob(os.path.join(s2_post_ndwi_folder, "*.tif")), aoi
-    )
+    # ndwi_post, transform, crs, height, width = compute_mean_ndwi(
+    #     glob(os.path.join(s2_post_ndwi_folder, "*.tif")), aoi
+    # )
     
-    save_s2_flood_layer(
-        ndwi_post, transform, crs, height, width, threshold=0.0,
-        raster_out=s2_tiff
-    )
+    # save_s2_flood_layer(
+    #     ndwi_post, transform, crs, height, width, threshold=0.0,
+    #     raster_out=s2_tiff
+    # )
 
-    batch_process()
+    # batch_process()
 
     combine_s1_s2(s1_tiff, s2_tiff,combined_tiff,combined_shapefile)
 
@@ -517,5 +524,5 @@ if __name__ == "__main__":
     print("Pipeline complete.")
 
     print(f"Upoading artifact: {artifact_name}, {artifact_name}")
-    #upload_artifact(artifact_name=artifact_name,project_name=project_name,src_path=output_folder)
+    upload_artifact(artifact_name=artifact_name,project_name=project_name,src_path=output_folder)
 
