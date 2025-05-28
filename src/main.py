@@ -209,8 +209,8 @@ def write_metadata():
             "sentinel1_used": Path(s1_tiff).exists(),
             "sentinel2_used": Path(s2_tiff).exists(),
             "s1_image_count": len(glob(os.path.join(s1_zip_folder, "*.zip"))),
-            "s2_pre_ndwi_count": len(glob(os.path.join(s2_pre_ndwi_folder, "*.tif"))),
-            "s2_post_ndwi_count": len(glob(os.path.join(s2_post_ndwi_folder, "*.tif"))),
+            "s2_pre_ndwi_count": len(glob(os.path.join(s2_pre_ndwi_folder, "preprocess", "NDWI", "*.tif"))),
+            "s2_post_ndwi_count": len(glob(os.path.join(s2_post_ndwi_folder,"preprocess", "NDWI", "*.tif"))),
             "processed_on": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "output_tiff": combined_tiff,
             "output_shapefile": combined_shapefile
@@ -523,7 +523,7 @@ if __name__ == "__main__":
     aoi = load_aoi()
 
     ndwi_post, transform, crs, height, width = compute_mean_ndwi(
-        glob(os.path.join(s2_post_ndwi_folder, "*.tif")), aoi
+        glob(os.path.join(s2_post_ndwi_folder, "preprocess", "NDWI","*.tif")), aoi
     )
     
     save_s2_flood_layer(
