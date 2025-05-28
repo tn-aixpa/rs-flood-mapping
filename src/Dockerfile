@@ -7,7 +7,6 @@ COPY requirements.txt .
 RUN mkdir /app/utils
 COPY utils /app/utils
 RUN mkdir /app/data
-RUN mkdir /app/output
 
 RUN python -m pip install -r requirements.txt
 
