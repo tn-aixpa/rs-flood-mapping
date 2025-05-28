@@ -1,7 +1,7 @@
 import os
 import sys
 import json
-import datetime
+#import datetime
 import os
 import glob
 import json
@@ -13,6 +13,16 @@ from rasterio.warp import reproject, Resampling, calculate_default_transform
 from rasterio.features import shapes
 import geopandas as gpd
 from shapely.geometry import shape
+import xml.etree.ElementTree as ET
+from snapista import Graph, Operator
+import zipfile
+from io import BytesIO
+from scipy.ndimage import label
+import numpy as np
+from scipy.ndimage import gaussian_gradient_magnitude
+from utils.skd_handler import upload_artifact
+from shapely.wkt import loads, dumps
+
 import digitalhub as dh
 
 
@@ -156,52 +166,237 @@ def combine_s1_s2(s1_path, s2_path, combined_tiff, combined_shp):
             print(f"Final vector: {combined_shp}")
 
     except Exception as e:
-        logging.error(f"Fusion failed: {e}")
+        print(f"Fusion failed: {e}")
         raise
 
-# def write_metadata():
-#     try:
-#         metadata = {
-#             "aoi_name": aoi_name,
-#             "flood_period": {
-#                 "before": " to ".join(CONFIG.get("before_flood", ["?", "?"])),
-#                 "after": " to ".join(CONFIG.get("after_flood", ["?", "?"]))
-#             },
-#             "sentinel1_used": Path(CONFIG["s1_tiff"]).exists(),
-#             "sentinel2_used": Path(CONFIG["s2_tiff"]).exists(),
-#             "s1_image_count": len(glob.glob(os.path.join(CONFIG["s1_zip_folder"], "*.zip"))),
-#             "s2_pre_ndwi_count": len(glob.glob(os.path.join(CONFIG["s2_pre_ndwi_folder"], "*.tif"))),
-#             "s2_post_ndwi_count": len(glob.glob(os.path.join(CONFIG["s2_post_ndwi_folder"], "*.tif"))),
-#             "processed_on": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-#             "output_tiff": CONFIG["combined_tiff"],
-#             "output_shapefile": CONFIG["combined_shapefile"]
-#         }
+def write_metadata():
+    try:
+        metadata = {
+            "aoi_name": aoi_name,
+            "flood_period": {
+                "before": " to ".join(before_flood),
+                "after": " to ".join(after_flood)
+            },
+            "sentinel1_used": Path(s1_tiff).exists(),
+            "sentinel2_used": Path(s2_tiff).exists(),
+            "s1_image_count": len(glob.glob(os.path.join(s1_zip_folder, "*.zip"))),
+            "s2_pre_ndwi_count": len(glob.glob(os.path.join(s2_pre_ndwi_folder, "*.tif"))),
+            "s2_post_ndwi_count": len(glob.glob(os.path.join(s2_post_ndwi_folder, "*.tif"))),
+            "processed_on": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "output_tiff": combined_tiff,
+            "output_shapefile": combined_shapefile
+        }
 
-#         # Compute total flood area in sq. km if shapefile exists
-#         shp = CONFIG["combined_shapefile"]
-#         if Path(shp).exists():
-#             gdf = gpd.read_file(shp)
-#             if gdf.crs.is_geographic:
-#                 gdf = gdf.to_crs(CONFIG["target_crs"])
-#             metadata["total_flooded_area_sqkm"] = round(gdf.geometry.area.sum() / 1e6, 2)
-#         else:
-#             metadata["total_flooded_area_sqkm"] = "Not computed"
+        # Compute total flood area in sq. km if shapefile exists
+        shp = combined_shapefile
+        if Path(shp).exists():
+            gdf = gpd.read_file(shp)
+            if gdf.crs.is_geographic:
+                gdf = gdf.to_crs(target_crs)
+            metadata["total_flooded_area_sqkm"] = round(gdf.geometry.area.sum() / 1e6, 2)
+        else:
+            metadata["total_flooded_area_sqkm"] = "Not computed"
 
-#         with open(CONFIG["metadata_output_path"], "w") as f:
-#             json.dump(metadata, f, indent=4)
+        with open(metadata_output_path, "w") as f:
+            json.dump(metadata, f, indent=4)
 
-#         print("Metadata saved with image counts and flood area.")
-#     except Exception as e:
-#         logging.error(f"Failed to write metadata: {e}")
+        print("Metadata saved with image counts and flood area.")
+    except Exception as e:
+        print(f"Failed to write metadata: {e}")
 
 
 #args=['/shared/launch.sh', 'sentinel2_post_flood','sentinel2_pre_flood','sentinel1_post_flood','shapesAOI', 'AOI_Rec.shp', 'shapelake's, 'nameofShapelake' , 'output_flood_mask', '20201002']
 
 #{"input1": "sentinel2_post_flood","input2": "sentinel2_pre_flood","input3": "sentinel1_post_flood","input4": "AOI_Garda","input5":"AOI_Rec.shp","input6": "Lakes_TN", "input7": "idrspacq.shp","input8": "Rivers_TN", "input9": "cif_pta2022_v", "input10": "output_flood_mask","input11": "20201002"}   
 
+
+def extract_date_from_filename(filename):
+    try:
+        print(f"Extracting date from filename: {filename}")
+        parts = filename.split('_')
+        date_str = parts[4][:8]
+        print (f"Extracted date string: {date_str} from filename: {filename}")
+        return datetime.strptime(date_str, "%Y%m%d")
+    except Exception as e:
+        print(f"Failed to extract date from {filename}: {str(e)}")
+        return None
+
+def get_aoi_wkt_and_projection():
+    try:
+        gdf = gpd.read_file(shapefile_path)
+        gdf = gdf.to_crs(epsg=4326)
+        aoi_geom = gdf.geometry.union_all()
+        print("AOI converted to WKT with CRS EPSG:4326")
+        return aoi_geom.wkt, gdf.crs
+    except Exception as e:
+        print(f"Failed to process shapefile {shapefile_path}: {str(e)}")
+        raise
+
+def check_aoi_overlap(zip_path, aoi_wkt):
+    print(f"DEBUG: Using manifest.safe for {zip_path}")
+    try:
+        if not isinstance(aoi_wkt, str):
+            print(f"Invalid aoi_wkt type: {type(aoi_wkt)}")
+            return False
+        with zipfile.ZipFile(zip_path, 'r') as z:
+            manifest_path = [f for f in z.namelist() if f.endswith('manifest.safe')][0]
+            print(f"Found manifest: {manifest_path}")
+            with z.open(manifest_path) as f:
+                manifest_content = f.read()
+        root = ET.parse(BytesIO(manifest_content)).getroot()
+        footprint = None
+        for coordinates in root.findall(".//gml:coordinates", namespaces={'gml': 'http://www.opengis.net/gml'}):
+            coords = coordinates.text.strip().split()
+            print(f"Coordinates: {coords[:5]}...")
+            coords = [tuple(map(float, c.split(','))) for c in coords]
+            footprint = shape({
+                'type': 'Polygon',
+                'coordinates': [[(lon, lat) for lat, lon in coords]]
+            })
+            break
+        if not footprint:
+            print(f"No footprint found in manifest for {zip_path}")
+            return False
+        gdf_footprint = gpd.GeoDataFrame(geometry=[footprint], crs="EPSG:4326")
+        aoi = loads(aoi_wkt)
+        intersects = gdf_footprint.geometry.iloc[0].intersects(aoi)
+        print(f"AOI overlap check for {zip_path}: {'Success' if intersects else 'No overlap'}")
+        return intersects
+    except Exception as e:
+        print(f"Failed to check AOI overlap for {zip_path}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+PROJ4_TEXT = 'PROJCS["ETRS89 / UTM zone 32N", GEOGCS["ETRS89", DATUM["European Terrestrial Reference System 1989", SPHEROID["GRS 1980",6378137.0, 298.257222101, AUTHORITY["EPSG","7019"]], TOWGS84[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], AUTHORITY["EPSG","6258"]], PRIMEM["Greenwich", 0.0, AUTHORITY["EPSG","8901"]], UNIT["degree", 0.017453292519943295], AXIS["Geodetic longitude", EAST], AXIS["Geodetic latitude", NORTH], AUTHORITY["EPSG","4258"]], PROJECTION["Transverse_Mercator", AUTHORITY["EPSG","9807"]], PARAMETER["central_meridian", 9.0], PARAMETER["latitude_of_origin", 0.0], PARAMETER["scale_factor", 0.9996], PARAMETER["false_easting", 500000.0], PARAMETER["false_northing", 0.0], UNIT["m", 1.0], AXIS["Easting", EAST], AXIS["Northing", NORTH], AUTHORITY["EPSG","25832"]]'
+
+
+def preprocess_and_subset(zip_path, geo_wkt):
+    out_file = os.path.join(temp_folder, os.path.basename(zip_path).replace(".zip", "_preprocessed.tif"))
+    try:
+        if not os.path.exists(zip_path):
+            print(f"ZIP file not found: {zip_path}")
+            return None
+        if not check_aoi_overlap(zip_path, geo_wkt):
+            print(f"Skipping {zip_path}: No AOI overlap")
+            return None
+        g = Graph()
+        g.add_node(Operator("Read", file=zip_path, formatName="SENTINEL-1"), node_id="read")
+        g.add_node(Operator("Apply-Orbit-File", orbitType="Sentinel Precise (Auto Download)", continueOnFail="true"), node_id="orbit", source="read")
+        g.add_node(Operator("Calibration", outputSigmaBand="true", outputImageScaleInDb="false", selectedPolarisations=polarization), node_id="calibration", source="orbit")
+        g.add_node(Operator("Speckle-Filter", filter="Lee", filterSizeX="5", filterSizeY="5"), node_id="speckle", source="calibration")
+        g.add_node(Operator("Subset", geoRegion=geo_wkt), node_id="subset", source="speckle")
+        g.add_node(Operator("Terrain-Correction", demName="SRTM 3Sec", pixelSpacingInMeter="10.0", mapProjection=PROJ4_TEXT), node_id="tc", source="subset")
+        g.add_node(Operator("Write", file=out_file, formatName="GeoTIFF-BigTIFF"), node_id="write", source="tc")
+        g.run()
+        if not os.path.exists(out_file):
+            print(f"Output file not created: {out_file}")
+            return None
+        print(f"Preprocessed file saved to {out_file}")
+        return out_file
+    except Exception as e:
+        print(f"Error preprocessing {zip_path}: {str(e)}")
+        return None
+
+def detect_flood(input_raster, output_path):
+    try:
+        with rasterio.open(input_raster) as src:
+            band = src.read(1)
+            elevation = src.read(2) if src.count > 1 else None
+            profile = src.profile
+
+            flood_mask = (band < 1.13E-2).astype(np.uint8)
+            if elevation is not None:
+                flood_mask[elevation > dem_threshold] = 0
+                slope = np.degrees(np.arctan(gaussian_gradient_magnitude(elevation, sigma=1)))
+                flood_mask[slope > slope_threshold] = 0
+
+            structure = np.ones((3, 3), dtype=int)
+            labeled, num_features = label(flood_mask, structure=structure)
+            counts = np.bincount(labeled.ravel())
+            remove_labels = np.where(counts < noise_min_pixels)[0]
+            mask = np.isin(labeled, remove_labels)
+            flood_mask[mask] = 0
+
+        profile.update(dtype=rasterio.uint8, count=1)
+        with rasterio.open(output_path, 'w', **profile) as dst:
+            dst.write(flood_mask, 1)
+        print(f"Flood detection result saved to {output_path}")
+    except Exception as e:
+        print(f"Error in flood detection for {input_raster}: {str(e)}")
+        raise
+
+from glob import glob
+def batch_process():
+
+    S1_ZIP_PATH = s1_zip_folder
+    ZIP_FILES = glob(os.path.join(S1_ZIP_PATH, "*.zip"))
+    TEMP_FOLDER = temp_folder
+    CROPPED_TIF_PATH = s1_tiff
+    FLOOD_DATE = flood_date
+    
+    try:
+        geo_wkt, target_crs = get_aoi_wkt_and_projection()
+        processed_rasters = []
+        if not ZIP_FILES:
+            print(f"No ZIP files found in {S1_ZIP_PATH}")
+            print(f"[ERROR] No ZIP files found in {S1_ZIP_PATH}")
+            return
+        for file in sorted(ZIP_FILES):
+            print(f"Processing file: {file}")
+            file_name = os.path.basename(file)
+            file_date = extract_date_from_filename(file_name)
+            if file_date and file_date >= FLOOD_DATE:
+                print(f"Processing {file_name}")
+                print(f"[INFO] Preprocessing and subsetting {file_name}")
+                result = preprocess_and_subset(file, geo_wkt)
+                if result:
+                    processed_rasters.append(result)
+            else:
+                print(f"Skipping {file_name}: Date {file_date} not after {FLOOD_DATE}")
+                print(f"[INFO] Skipping {file_name}: Date {file_date} not after {FLOOD_DATE}")
+        if not processed_rasters:
+            print("No usable preprocessed rasters found")
+            print("[ERROR] No usable preprocessed rasters found.")
+            return
+        src_files = [rasterio.open(fp) for fp in processed_rasters]
+        mosaic, out_trans = merge(src_files, method="max")
+        meta = src_files[0].meta.copy()
+        meta.update({
+            "driver": "GTiff",
+            "height": mosaic.shape[1],
+            "width": mosaic.shape[2],
+            "transform": out_trans,
+            "compress": "lzw",
+            "BIGTIFF": "YES"
+        })
+        merged_path = os.path.join(TEMP_FOLDER, "merged_cropped.tif")
+        with rasterio.open(merged_path, "w", **meta) as dest:
+            dest.write(mosaic)
+        for src in src_files:
+            src.close()
+        print(f"Merged cropped raster saved to {merged_path}")
+        print(f"[INFO] Merged cropped raster saved to {merged_path}")
+        detect_flood(merged_path, CROPPED_TIF_PATH)
+        for temp in processed_rasters:
+            if os.path.exists(temp):
+                os.remove(temp)
+        if os.path.exists(merged_path):
+            os.remove(merged_path)
+        print("Cleanup complete. Final flood map ready")
+        print("[INFO] Cleanup complete. Final flood map ready.")
+    except Exception as e:
+        print(f"Batch processing failed: {str(e)}")
+        print(f"[ERROR] Batch processing failed: {str(e)}")
+
+
+
 if __name__ == "__main__":
 
-    global target_crs, flood_date, polarization, dem_threshold, slope_threshold, noise_min_pixels, shapefile_path, lakes_shapefile, combined_shapefile, combined_tiff, s1_tiff, s2_tiff, metadata_output_path, output_folder, temp_folder
+    global target_crs, flood_date, polarization, dem_threshold, slope_threshold, noise_min_pixels, shapefile_path, lakes_shapefile, combined_shapefile, combined_tiff, s1_tiff, s2_tiff, metadata_output_path, output_folder, temp_folder,before_flood,artifact_name,after_flood
+    
+    before_flood = ["2020-09-01", "2020-09-30"]
+    after_flood = ["2020-10-01", "2020-10-31"]
 
     args = sys.argv[1].replace("'","\"")
     json_input = json.loads(args)
@@ -275,20 +470,21 @@ if __name__ == "__main__":
     aoi = load_aoi()
 
     ndwi_post, transform, crs, height, width = compute_mean_ndwi(
-        glob.glob(os.path.join(s2_post_ndwi_folder, "*.tif")), aoi
+        glob(os.path.join(s2_post_ndwi_folder, "*.tif")), aoi
     )
     save_s2_flood_layer(
         ndwi_post, transform, crs, height, width, threshold=0.0,
         raster_out=s2_tiff
     )
 
-    #batch_process()
+    batch_process()
 
-    #combine_s1_s2(s1_tiff, s2_tiff,combined_tiff,combined_shapefile)
+    combine_s1_s2(s1_tiff, s2_tiff,combined_tiff,combined_shapefile)
 
-    #write_metadata()
+    write_metadata()
+
     print("Pipeline complete.")
 
-    #print(f"Upoading artifact: {artifact_name}, {artifact_name}")
+    print(f"Upoading artifact: {artifact_name}, {artifact_name}")
     #upload_artifact(artifact_name=artifact_name,project_name=project_name,src_path=output_folder)
 

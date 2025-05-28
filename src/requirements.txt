@@ -13,10 +13,11 @@ tqdm==4.65.0
 # Raster and Vector Geospatial Processing
 # -------------------------------------------
 rasterio==1.3.8
-geopandas==0.14.4
+geopandas==1.0.1
 shapely==2.0.1
-fiona>=1.8.21         # Required by geopandas
+fiona==1.10.1         # Required by geopandas
 pyproj>=3.4.0         # CRS and projection transformations
+
 
 # -------------------------------------------
 # Visualization Tools (Optional for Jupyter/Mapping)
