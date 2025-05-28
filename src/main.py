@@ -421,7 +421,7 @@ def batch_process():
 
 
 # Example command to run the script:
-# python main.py '{"input1": "sentinel2_post_flood","input2": "sentinel2_pre_flood","input3": "sentinel1_post_flood","input4": "AOI_Garda","input5":"AOI_Rec.shp","input6": "Lakes_TN", "input7": "idrspacq.shp","input8": "Rivers_TN", "input9": "cif_pta2022_v.shp", "input10": "output_flood_mask","input11": "20201002", "input12": "EPSG:25832", "input13": "VV", "input14": 200, "input15": 5, "input16": 5, "input17": 2}'
+# python main.py '{"input1": "sentinel1_GRD_postflood","input2": "sentinel2_post_flood","input3": "sentinel2_pre_flood","input4": "AOI_TN","input5":"AOI_Rec.shp","input6": "Lakes_TN", "input7": "idrspacq.shp","input8": "Rivers_TN", "input9": "cif_pta2022_v.shp", "input10": "output_flood_mask","input11": "20201002", "input12": "EPSG:25832", "input13": "VV", "input14": 200, "input15": 5, "input16": 5, "input17": 2}'
 
 
 if __name__ == "__main__":
@@ -470,20 +470,39 @@ if __name__ == "__main__":
     combined_shapefile = os.path.join(BASE_DIR, "data", "flood_outputs", "flood_detection_layer.shp")
     metadata_output_path = os.path.join(BASE_DIR, "data", "flood_outputs", "flood_detection_layer_metadata.json")
 
+    # Make sure required folders exist
+    os.makedirs(s1_zip_folder, exist_ok=True)
+    os.makedirs(s2_post_ndwi_folder, exist_ok=True)
+    os.makedirs(s2_pre_ndwi_folder, exist_ok=True)
+    os.makedirs(os.path.join(BASE_DIR, "data", input4), exist_ok=True)  # Ensure AOI folder exists
+    os.makedirs(os.path.join(BASE_DIR, "data", input6), exist_ok=True)  # Ensure Lakes folder exists
+    os.makedirs(os.path.join(BASE_DIR, "data", input8), exist_ok=True)  # Ensure Rivers folder exists
+    # Ensure output folders exist
+    os.makedirs(output_folder, exist_ok=True)
+    # Ensure temp folder exists
+    os.makedirs(temp_folder, exist_ok=True)
+
     # Download (Shapefile, Zips)
-    # project = dh.get_or_create_project(project_name)
-    # shp_artifact = project.get_artifact(input3)
-    # shp_path =  shp_artifact.download(os.path.join(BASE_DIR, "data", input4), overwrite=True)
-    # lake_artifact = project.get_artifact(input6)
-    # lake_shp_path = lake_artifact.download(os.path.join(BASE_DIR, "data", input6), overwrite=True)
-    # rivers_artifact = project.get_artifact(input8)
-    # rivers_shp_path = rivers_artifact.download(os.path.join(BASE_DIR, "data", input8), overwrite=True)
-    # sentinel1_artifact = project.get_artifact(input1)
-    # sentinel1_zip_path = sentinel1_artifact.download(s1_zip_folder, overwrite=True)
-    # sentinel2_postflood_artifact = project.get_artifact(input2)
-    # sentinel2_zip_path2 = sentinel2_postflood_artifact.download(s2_post_ndwi_folder, overwrite=True)
-    # sentinel2_preflood_artifact = project.get_artifact(input3)
-    # sentinel2_zip_path1 = sentinel2_preflood_artifact.download(s2_pre_ndwi_folder, overwrite=True)
+    project = dh.get_or_create_project(project_name)
+    # Download artifacts
+    print(f"Downloading AOI shape artifact for project: {project_name} Name: {input4}")
+    shp_artifact = project.get_artifact(input4)
+    shp_path =  shp_artifact.download(os.path.join(BASE_DIR, "data", input4), overwrite=True)
+    print(f"Downloading lake shape artifact for project: {project_name} Name: {input6}")
+    lake_artifact = project.get_artifact(input6)
+    lake_shp_path = lake_artifact.download(os.path.join(BASE_DIR, "data", input6), overwrite=True)
+    print(f"Downloading River artifacts for project: {project_name} Name: {input8}")
+    rivers_artifact = project.get_artifact(input8)
+    rivers_shp_path = rivers_artifact.download(os.path.join(BASE_DIR, "data", input8), overwrite=True)
+    print(f"Downloading Sentinel-1 artifact for project: {project_name} Name: {input1}")
+    sentinel1_artifact = project.get_artifact(input1)
+    sentinel1_zip_path = sentinel1_artifact.download(s1_zip_folder, overwrite=True)
+    print(f"Downloading Sentinel-2 post-flood artifact for project: {project_name} Name: {input2}")
+    sentinel2_postflood_artifact = project.get_artifact(input2)
+    sentinel2_zip_path2 = sentinel2_postflood_artifact.download(s2_post_ndwi_folder, overwrite=True)
+    print(f"Downloading Sentinel-2 pre-flood artifact for project: {project_name} Name: {input3}")
+    sentinel2_preflood_artifact = project.get_artifact(input3)
+    sentinel2_zip_path1 = sentinel2_preflood_artifact.download(s2_pre_ndwi_folder, overwrite=True)
     artifact_name = input10
 
     print(f"flood date: {input11}")
@@ -498,24 +517,21 @@ if __name__ == "__main__":
     noise_min_pixels= input16 # input16
     river_buffer_meters= input17 # input17
 
-    # Make sure required folders exist
-    os.makedirs(output_folder, exist_ok=True)
-    os.makedirs(temp_folder, exist_ok=True)
-    os.makedirs(os.path.join(BASE_DIR, "logs"), exist_ok=True)
+    
     # Run the pipeline
     print("Starting Flood Mapping Pipeline")
-    # aoi = load_aoi()
+    aoi = load_aoi()
 
-    # ndwi_post, transform, crs, height, width = compute_mean_ndwi(
-    #     glob(os.path.join(s2_post_ndwi_folder, "*.tif")), aoi
-    # )
+    ndwi_post, transform, crs, height, width = compute_mean_ndwi(
+        glob(os.path.join(s2_post_ndwi_folder, "*.tif")), aoi
+    )
     
-    # save_s2_flood_layer(
-    #     ndwi_post, transform, crs, height, width, threshold=0.0,
-    #     raster_out=s2_tiff
-    # )
+    save_s2_flood_layer(
+        ndwi_post, transform, crs, height, width, threshold=0.0,
+        raster_out=s2_tiff
+    )
 
-    # batch_process()
+    batch_process()
 
     combine_s1_s2(s1_tiff, s2_tiff,combined_tiff,combined_shapefile)
 
