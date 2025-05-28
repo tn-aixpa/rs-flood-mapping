@@ -1,11 +1,10 @@
 import os
 import sys
 import json
-#import datetime
-import os
 import glob
 import json
 from datetime import datetime
+from pathlib import Path
 import numpy as np
 import rasterio
 from rasterio.mask import mask
@@ -22,6 +21,7 @@ import numpy as np
 from scipy.ndimage import gaussian_gradient_magnitude
 from utils.skd_handler import upload_artifact
 from shapely.wkt import loads, dumps
+from rasterio.merge import merge
 
 import digitalhub as dh
 
@@ -35,14 +35,37 @@ def load_aoi():
         gdf = gdf.to_crs(target_crs)
     return gdf
 
+# def load_lakes():
+#     print(f"Loading lakes shapefile from {lakes_shapefile}")
+#     lakes_path = lakes_shapefile
+#     if not lakes_path or not os.path.exists(lakes_path):
+#         print("Lakes shapefile not found or not configured.")
+#         return None
+#     lakes = gpd.read_file(lakes_path)
+#     lakes = lakes.to_crs(target_crs)
+#     return lakes
+
 def load_lakes():
+    print(f"Loading lakes shapefile from {lakes_shapefile}")
     lakes_path = lakes_shapefile
     if not lakes_path or not os.path.exists(lakes_path):
-        logging.warning("Lakes shapefile not found or not configured.")
+        print("Lakes shapefile not found or not configured.")
         return None
     lakes = gpd.read_file(lakes_path)
     lakes = lakes.to_crs(target_crs)
     return lakes
+
+def load_rivers():
+    print(f"Loading rivers shapefile from {rivers_shapefile}")
+    rivers_path = rivers_shapefile
+    if not rivers_path or not os.path.exists(rivers_path):
+        print("Rivers shapefile not found or not configured.")
+        return None
+    rivers = gpd.read_file(rivers_path)
+    rivers = rivers.to_crs(target_crs)
+    rivers_buffered = rivers.buffer(river_buffer_meters)
+    return gpd.GeoDataFrame(geometry=rivers_buffered, crs=target_crs)
+
 
 def compute_mean_ndwi(files, aoi_gdf):
     stack = []
@@ -75,7 +98,7 @@ def compute_mean_ndwi(files, aoi_gdf):
                 )
                 stack.append(output)
             except ValueError:
-                logging.warning(f"Skipping {f}: no AOI overlap")
+                print(f"Skipping {f}: no AOI overlap")
 
     if not stack:
         raise ValueError("No valid NDWI files found.")
@@ -135,9 +158,11 @@ def combine_s1_s2(s1_path, s2_path, combined_tiff, combined_shp):
 
             aoi = load_aoi()
             lakes = load_lakes()
-
+            rivers = load_rivers()
             if lakes is not None:
                 aoi = gpd.overlay(aoi, lakes, how='difference')
+            if rivers is not None:
+                aoi = gpd.overlay(aoi, rivers, how='difference')
 
             with rasterio.open("/tmp/combined_unclipped.tif", "w", driver="GTiff",
                                height=height, width=width, count=1, dtype="uint8",
@@ -153,36 +178,40 @@ def combine_s1_s2(s1_path, s2_path, combined_tiff, combined_shp):
                     "transform": out_transform
                 })
 
-            with rasterio.open(combined_tiff, "w", **final_meta) as dst:
-                dst.write(clipped)
+            labeled, num_features = label(clipped[0] == 255)
+            sizes = np.bincount(labeled.ravel())
+            small_mask = np.isin(labeled, np.where(sizes < noise_min_pixels)[0])
+            cleaned = clipped[0].copy()
+            cleaned[small_mask] = 0
 
-            results = shapes(clipped[0], mask=clipped[0] == 255, transform=out_transform)
+            with rasterio.open(combined_tiff, "w", **final_meta) as dst:
+                dst.write(cleaned, 1)
+
+            results = shapes(cleaned, mask=cleaned == 255, transform=out_transform)
             geoms = [shape(g) for g, _ in results]
             if geoms:
-                gdf = gpd.GeoDataFrame({"geometry": geoms}, target_crs)
+                gdf = gpd.GeoDataFrame({"geometry": geoms}, crs=target_crs)
                 gdf.to_file(combined_shp)
 
-            print(f"Final combined TIFF: {combined_tiff}")
-            print(f"Final vector: {combined_shp}")
+            print(f"Final cleaned TIFF saved: {combined_tiff}")
+            print(f"Final shapefile saved: {combined_shp}")
 
     except Exception as e:
         print(f"Fusion failed: {e}")
         raise
 
+
 def write_metadata():
     try:
         metadata = {
             "aoi_name": aoi_name,
-            "flood_period": {
-                "before": " to ".join(before_flood),
-                "after": " to ".join(after_flood)
-            },
+            "flood_date": flood_date,
             "sentinel1_used": Path(s1_tiff).exists(),
             "sentinel2_used": Path(s2_tiff).exists(),
-            "s1_image_count": len(glob.glob(os.path.join(s1_zip_folder, "*.zip"))),
-            "s2_pre_ndwi_count": len(glob.glob(os.path.join(s2_pre_ndwi_folder, "*.tif"))),
-            "s2_post_ndwi_count": len(glob.glob(os.path.join(s2_post_ndwi_folder, "*.tif"))),
-            "processed_on": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "s1_image_count": len(glob(os.path.join(s1_zip_folder, "*.zip"))),
+            "s2_pre_ndwi_count": len(glob(os.path.join(s2_pre_ndwi_folder, "*.tif"))),
+            "s2_post_ndwi_count": len(glob(os.path.join(s2_post_ndwi_folder, "*.tif"))),
+            "processed_on": datetime.now(),
             "output_tiff": combined_tiff,
             "output_shapefile": combined_shapefile
         }
@@ -395,8 +424,8 @@ if __name__ == "__main__":
 
     global target_crs, flood_date, polarization, dem_threshold, slope_threshold, noise_min_pixels, shapefile_path, lakes_shapefile, combined_shapefile, combined_tiff, s1_tiff, s2_tiff, metadata_output_path, output_folder, temp_folder,before_flood,artifact_name,after_flood
     
-    before_flood = ["2020-09-01", "2020-09-30"]
-    after_flood = ["2020-10-01", "2020-10-31"]
+    #before_flood = ["2020-09-01", "2020-09-30"]
+    #after_flood = ["2020-10-01", "2020-10-31"]
 
     args = sys.argv[1].replace("'","\"")
     json_input = json.loads(args)
@@ -420,7 +449,7 @@ if __name__ == "__main__":
     s2_post_ndwi_folder = os.path.join(BASE_DIR, "data", "sentinel2", "Sentinel-2(post-NDWI)")
     shapefile_path = os.path.join(BASE_DIR, "data", input4 , input5) # "AOI_Garda" ,"AOI_Rec.shp"
     lakes_shapefile = os.path.join(BASE_DIR, "data", input6, input7) # "Lakes_TN", "idrspacq.shp"
-    rivers_shapefile = os.path.join(BASE_DIR, "data", input8, input9) # "Rivers_TN", "cif_pta2022_v"
+    rivers_shapefile = os.path.join(BASE_DIR, "data", input8, input9) # "Rivers_TN", "cif_pta2022_v.shp"
 
     # Output folder (everything goes here)
     output_folder = os.path.join(BASE_DIR, "data", "flood_outputs")
@@ -454,12 +483,13 @@ if __name__ == "__main__":
 
     # Set up configuration
     aoi_name = input5
-    target_crs = "EPSG:25832"
+    target_crs = "EPSG:25832" #input
     flood_date = datetime.strptime(input11, "%Y%m%d") # "20201002"
-    polarization = "VV", # VV or VH
-    dem_threshold = 500, # 200-700
-    slope_threshold = 7, # 5- 15
-    noise_min_pixels= 5 # change accordingly
+    polarization = "VV", # VV or VH #input
+    dem_threshold = 500, # 200-700 #input
+    slope_threshold = 7, # 5- 15 #input
+    noise_min_pixels= 5 # input
+    river_buffer_meters=2 # input
 
     # Make sure required folders exist
     os.makedirs(output_folder, exist_ok=True)
@@ -472,6 +502,7 @@ if __name__ == "__main__":
     ndwi_post, transform, crs, height, width = compute_mean_ndwi(
         glob(os.path.join(s2_post_ndwi_folder, "*.tif")), aoi
     )
+    
     save_s2_flood_layer(
         ndwi_post, transform, crs, height, width, threshold=0.0,
         raster_out=s2_tiff
