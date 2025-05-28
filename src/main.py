@@ -5,7 +5,6 @@ import datetime
 import os
 import glob
 import json
-import logging
 from datetime import datetime
 import numpy as np
 import rasterio
@@ -77,10 +76,10 @@ def save_s2_flood_layer(ndwi, transform, crs, height, width, threshold, raster_o
     with rasterio.open(raster_out, "w", driver="GTiff", height=height, width=width,
                        count=1, dtype="uint8", crs=crs, transform=transform, nodata=0) as dst:
         dst.write(mask_out, 1)
-    logging.info(f"Saved S2 flood mask: {raster_out}")
+    print(f"Saved S2 flood mask: {raster_out}")
 
 def combine_s1_s2(s1_path, s2_path, combined_tiff, combined_shp):
-    logging.info("Combining Sentinel-1 and Sentinel-2 masks...")
+    print("Combining Sentinel-1 and Sentinel-2 masks...")
     try:
         with rasterio.open(s1_path) as s1, rasterio.open(s2_path) as s2:
             s1_data = s1.read(1)
@@ -153,8 +152,8 @@ def combine_s1_s2(s1_path, s2_path, combined_tiff, combined_shp):
                 gdf = gpd.GeoDataFrame({"geometry": geoms}, target_crs)
                 gdf.to_file(combined_shp)
 
-            logging.info(f"Final combined TIFF: {combined_tiff}")
-            logging.info(f"Final vector: {combined_shp}")
+            print(f"Final combined TIFF: {combined_tiff}")
+            print(f"Final vector: {combined_shp}")
 
     except Exception as e:
         logging.error(f"Fusion failed: {e}")
@@ -191,7 +190,7 @@ def combine_s1_s2(s1_path, s2_path, combined_tiff, combined_shp):
 #         with open(CONFIG["metadata_output_path"], "w") as f:
 #             json.dump(metadata, f, indent=4)
 
-#         logging.info("Metadata saved with image counts and flood area.")
+#         print("Metadata saved with image counts and flood area.")
 #     except Exception as e:
 #         logging.error(f"Failed to write metadata: {e}")
 
@@ -288,7 +287,7 @@ if __name__ == "__main__":
     #combine_s1_s2(s1_tiff, s2_tiff,combined_tiff,combined_shapefile)
 
     #write_metadata()
-    logging.info("Pipeline complete.")
+    print("Pipeline complete.")
 
     #print(f"Upoading artifact: {artifact_name}, {artifact_name}")
     #upload_artifact(artifact_name=artifact_name,project_name=project_name,src_path=output_folder)
