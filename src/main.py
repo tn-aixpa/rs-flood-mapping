@@ -421,7 +421,7 @@ def batch_process():
 
 
 # Example command to run the script:
-# python main.py '{"input1": "sentinel1_GRD_postflood","input2": "sentinel2_post_flood","input3": "sentinel2_pre_flood","input4": "AOI_TN","input5":"AOI_Rec.shp","input6": "Lakes_TN", "input7": "idrspacq.shp","input8": "Rivers_TN", "input9": "cif_pta2022_v.shp", "input10": "output_flood_mask","input11": "20201002", "input12": "EPSG:25832", "input13": "VV", "input14": 200, "input15": 5, "input16": 5, "input17": 2}'
+# python main.py '{"input1": "sentinel1_GRD_postflood","input2": "sentinel2_post_flood","input3": "sentinel2_pre_flood","input4": "AOI_TN","input5":"AOI_Rec.shp","input6": "Lakes_TN", "input7": "idrspacq.shp","input8": "Rivers_TN", "input9": "cif_pta2022_v.shp", "input10": "output_flood_mask","input11": "2020-10-02", "input12": "EPSG:25832", "input13": "VV", "input14": 200, "input15": 5, "input16": 5, "input17": 2}'
 
 
 if __name__ == "__main__":
@@ -511,7 +511,7 @@ if __name__ == "__main__":
 
     # Set up configuration
     aoi_name = aoiShapeArtifactName
-    flood_date = datetime.strptime(floodDate, "%Y%m%d") # "20201002"
+    flood_date = datetime.strptime(floodDate, "%Y-%m-%d") # "20201002"
         
     # Run the pipeline
     print("Starting Flood Mapping Pipeline")
