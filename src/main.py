@@ -64,8 +64,8 @@ geometry = wkt.loads("POLYGON ((10.644988646837982 45.85539621678084, 10.6449886
 # --- S2 - Processing
 
 # --- Collect NDWI TIFFs ---
-pre_flood_files = sorted(glob.glob(os.path.join(s2_pre_flood_folder, "*.tif")))
-post_flood_files = sorted(glob.glob(os.path.join(s2_post_flood_folder, "*.tif")))
+pre_flood_files = sorted(glob.glob(os.path.join(s2_pre_flood_folder, "preprocess", "NDWI", "*.tif")))
+post_flood_files = sorted(glob.glob(os.path.join(s2_post_flood_folder, "preprocess", "NDWI", "*.tif")))
 
 # --- Check if data is available ---
 if not pre_flood_files or not post_flood_files:
@@ -455,8 +455,8 @@ def write_metadata():
             "sentinel1_used": Path(s1_tiff).exists(),
             "sentinel2_used": Path(s2_tiff).exists(),
             "s1_image_count": len(glob.glob(os.path.join(s1_zip_folder, "*.zip"))),
-            "s2_pre_ndwi_count": len(glob.glob(os.path.join(s2_pre_flood_folder, "*.tif"))),
-            "s2_post_ndwi_count": len(glob.glob(os.path.join(s2_post_flood_folder, "*.tif"))),
+            "s2_pre_ndwi_count": len(glob.glob(os.path.join(s2_pre_flood_folder, "preprocess", "NDWI", "*.tif"))),
+            "s2_post_ndwi_count": len(glob.glob(os.path.join(s2_post_flood_folder, "preprocess", "NDWI", "*.tif"))),
             "processed_on": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "output_tiff": combined_tiff,
             "output_shapefile": combined_shapefile
