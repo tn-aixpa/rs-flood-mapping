@@ -26,11 +26,6 @@ from rasterio.merge import merge
 
 import digitalhub as dh
 
-# Example command to run the script:
-# python main.py '{"input1": "sentinel1_GRD_postflood","input2": "sentinel2_post_flood","input3": "sentinel2_pre_flood","input4": "AOI_TN","input5":"AOI_Rec.shp","input6": "Lakes_TN", "input7": "idrspacq.shp","input8": "Rivers_TN", "input9": "cif_pta2022_v.shp", "input10": "output_flood_mask","input11": "2020-10-02", "input12": "EPSG:25832", "input13": "VV", "input14": 200, "input15": 5, "input16": 5, "input17": 2}'
-
-
-# Set up configuration
 def load_aoi():
     geom_wkt = geometry.wkt # or directly use your global 'geometry'
     geom = wkt.loads(geom_wkt)
@@ -58,65 +53,44 @@ def load_rivers():
     rivers_buffered = rivers.buffer(river_buffer_meters)
     return gpd.GeoDataFrame(geometry=rivers_buffered, crs=target_crs)
 
-# --- USER AOI DEFINITION ---
-geometry = wkt.loads("POLYGON ((10.644988646837982 45.85539621678084, 10.644988646837982 46.06780100571985, 10.991744628283294 46.06780100571985, 10.991744628283294 45.85539621678084, 10.644988646837982 45.85539621678084))")
-##################### FILE 1 #####################################
-# --- S2 - Processing
-
-# --- Collect NDWI TIFFs ---
-pre_flood_files = sorted(glob.glob(os.path.join(s2_pre_flood_folder, "preprocess", "NDWI", "*.tif")))
-post_flood_files = sorted(glob.glob(os.path.join(s2_post_flood_folder, "preprocess", "NDWI", "*.tif")))
-
-# --- Check if data is available ---
-if not pre_flood_files or not post_flood_files:
-    print("No Sentinel-2 data available for flood detection. Skipping processing.")
-else:
-    # --- FUNCTION TO REPROJECT GEOMETRY ---
-    def reproject_geometry(geom, src_crs, dst_crs):
-        if src_crs != dst_crs:
-            project = pyproj.Transformer.from_crs(src_crs, dst_crs, always_xy=True).transform
-            return transform(project, geom)
-        return geom
 
     # --- NDWI MEAN COMPUTATION ---
-    def compute_mean_ndwi(files, geometry, fill_value=0.0):
-        ndwi_stack = []
-        ref_shape = None
-        ref_transform = None
-        ref_crs = None
+def compute_mean_ndwi(files, geometry, fill_value=0.0):
+    ndwi_stack = []
+    ref_shape = None
+    ref_transform = None
+    ref_crs = None
 
-        for file in files:
-            with rasterio.open(file) as src:
-                try:
-                    geom_proj = reproject_geometry(geometry, "EPSG:4326", src.crs)
-                    geom_geojson = [mapping(geom_proj)]
+    for file in files:
+        with rasterio.open(file) as src:
+            try:
+                geom_proj = reproject_geometry(geometry, "EPSG:4326", src.crs)
+                geom_geojson = [mapping(geom_proj)]
+                ndwi_cropped, transform = mask(src, geom_geojson, crop=True, filled=True, nodata=fill_value)
+                ndwi = ndwi_cropped[0]
 
-                    ndwi_cropped, transform = mask(src, geom_geojson, crop=True, filled=True, nodata=fill_value)
-                    ndwi = ndwi_cropped[0]
-
-                    if ref_shape is None:
-                        ref_shape = ndwi.shape
-                        ref_transform = transform
-                        ref_crs = src.crs
-                    else:
-                        if ndwi.shape != ref_shape:
-                            ndwi_resampled = np.full(ref_shape, fill_value, dtype=np.float32)
-                            rasterio.warp.reproject(
-                                source=ndwi,
-                                destination=ndwi_resampled,
-                                src_transform=transform,
-                                src_crs=src.crs,
-                                dst_transform=ref_transform,
-                                dst_crs=ref_crs,
-                                resampling=Resampling.bilinear,
-                                src_nodata=fill_value,
-                                dst_nodata=fill_value
-                            )
-                            ndwi = ndwi_resampled
+                if ref_shape is None:
+                    ref_shape = ndwi.shape
+                    ref_transform = transform
+                    ref_crs = src.crs
+                else:
+                    if ndwi.shape != ref_shape:
+                        ndwi_resampled = np.full(ref_shape, fill_value, dtype=np.float32)
+                        rasterio.warp.reproject(
+                            source=ndwi,
+                            destination=ndwi_resampled,
+                            src_transform=transform,
+                            src_crs=src.crs,
+                            dst_transform=ref_transform,
+                            dst_crs=ref_crs,
+                            resampling=Resampling.bilinear,
+                            src_nodata=fill_value,
+                            dst_nodata=fill_value
+                        )
+                        ndwi = ndwi_resampled
 
                     ndwi_stack.append(ndwi)
-
-                except ValueError as e:
+            except ValueError as e:
                     print(f"Skipping {file}: {e}")
                     continue
 
@@ -163,24 +137,14 @@ else:
 
         print(f"Flood mask saved to: {output_path}")
 
-    # --- Save output ---
-    output_tiff_path = os.path.join(output_folder, "S2-flood_layer.tif")
-    save_flood_mask_tiff(flood_pixels, post_transform, post_crs, output_tiff_path)
+        # --- Save output ---
+        output_tiff_path = os.path.join(output_folder, "S2-flood_layer.tif")
+        save_flood_mask_tiff(flood_pixels, post_transform, post_crs, output_tiff_path)
 
 
 ########################FILE 2#########################################33
 # S1 - Processing
 
-S1_ZIP_PATH = s1_zip_folder
-TEMP_FOLDER = temp_folder
-OUTPUT_TIFF_PATH = s1_tiff
-FLOOD_DATE = flood_date 
-POLARIZATION = polarization
-SLOPE_THRESHOLD = slope_threshold
-SLOPE_MAP_PATH = slope_map_path  # Make sure slope_map_path is defined
-
-
-PROJ4_TEXT = 'PROJCS["ETRS89 / UTM zone 32N", GEOGCS["ETRS89", DATUM["European Terrestrial Reference System 1989", SPHEROID["GRS 1980",6378137.0, 298.257222101]], PRIMEM["Greenwich", 0.0], UNIT["degree", 0.017453292519943295]], PROJECTION["Transverse_Mercator"], PARAMETER["central_meridian", 9.0], PARAMETER["latitude_of_origin", 0.0], PARAMETER["scale_factor", 0.9996], PARAMETER["false_easting", 500000.0], PARAMETER["false_northing", 0.0], UNIT["m", 1.0], AXIS["Easting", EAST], AXIS["Northing", NORTH], AUTHORITY["EPSG","25832"]]'
 
 def extract_date_from_filename(filename):
     try:
@@ -212,17 +176,17 @@ def check_aoi_overlap(zip_path, aoi_wkt):
         return False
 
 def preprocess(zip_path, geo_wkt):
-    out_file = os.path.join(TEMP_FOLDER, os.path.basename(zip_path).replace(".zip", "_preprocessed.tif"))
+    out_file = os.path.join(temp_folder, os.path.basename(zip_path).replace(".zip", "_preprocessed.tif"))
     try:
         if not check_aoi_overlap(zip_path, geo_wkt):
             return None
         g = Graph()
         g.add_node(Operator("Read", file=zip_path, formatName="SENTINEL-1"), node_id="read")
         g.add_node(Operator("Apply-Orbit-File", orbitType="Sentinel Precise (Auto Download)", continueOnFail="true"), node_id="orbit", source="read")
-        g.add_node(Operator("Calibration", outputSigmaBand="true", outputImageScaleInDb="false", selectedPolarisations=POLARIZATION), node_id="calibration", source="orbit")
+        g.add_node(Operator("Calibration", outputSigmaBand="true", outputImageScaleInDb="false", selectedPolarisations=polarization), node_id="calibration", source="orbit")
         g.add_node(Operator("Speckle-Filter", filter="Lee", filterSizeX="5", filterSizeY="5"), node_id="speckle", source="calibration")
         g.add_node(Operator("Subset", geoRegion=geo_wkt), node_id="subset", source="speckle")
-        g.add_node(Operator("Terrain-Correction", demName="SRTM 3Sec", pixelSpacingInMeter="10.0", mapProjection=PROJ4_TEXT, outputDEM=True), node_id="tc", source="subset")
+        g.add_node(Operator("Terrain-Correction", demName="SRTM 3Sec", pixelSpacingInMeter="10.0", mapProjection=proj4_text, outputDEM=True), node_id="tc", source="subset")
         g.add_node(Operator("Write", file=out_file, formatName="GeoTIFF-BigTIFF"), node_id="write", source="tc")
         g.run()
         return out_file if os.path.exists(out_file) else None
@@ -261,16 +225,16 @@ def detect_change(pre_path, post_path, output_path):
             dst.write(flood_mask, 1)
 
 def run():
-    if not os.path.exists(TEMP_FOLDER):
-        os.makedirs(TEMP_FOLDER)
+    if not os.path.exists(temp_folder):
+        os.makedirs(temp_folder)
 
     geo_wkt = get_aoi_wkt()
     pre_files, post_files = [], []
-    for file in sorted(glob(os.path.join(S1_ZIP_PATH, "*.zip"))):
+    for file in sorted(glob(os.path.join(s1_zip_folder, "*.zip"))):
         date = extract_date_from_filename(os.path.basename(file))
         if not date:
             continue
-        if date < FLOOD_DATE:
+        if date < flood_date:
             pre_files.append(file)
         else:
             post_files.append(file)
@@ -296,27 +260,27 @@ def run():
     profile = rasterio.open(post_proc[0]).profile
     profile.update({"height": post_mosaic.shape[1], "width": post_mosaic.shape[2], "transform": trans})
 
-    pre_path = os.path.join(TEMP_FOLDER, "pre_merged.tif")
-    post_path = os.path.join(TEMP_FOLDER, "post_merged.tif")
+    pre_path = os.path.join(temp_folder, "pre_merged.tif")
+    post_path = os.path.join(temp_folder, "post_merged.tif")
     with rasterio.open(pre_path, "w", **profile) as dst:
         dst.write(pre_mosaic)
     with rasterio.open(post_path, "w", **profile) as dst:
         dst.write(post_mosaic)
 
-    detect_change(pre_path, post_path, OUTPUT_TIFF_PATH)
+    detect_change(pre_path, post_path, output_tiff_path)
 
-    shutil.rmtree(TEMP_FOLDER)
-    print("[INFO] Final flood map ready at:", OUTPUT_TIFF_PATH)
+    shutil.rmtree(temp_folder)
+    print("[INFO] Final flood map ready at:", output_tiff_path)
 
 def run_from_temp():
     pre_proc = []
     post_proc = []
 
-    for tif in sorted(glob(os.path.join(TEMP_FOLDER, "*_preprocessed.tif"))):
+    for tif in sorted(glob(os.path.join(temp_folder, "*_preprocessed.tif"))):
         date = extract_date_from_filename(os.path.basename(tif))
         if not date:
             continue
-        if date < FLOOD_DATE:
+        if date < flood_date:
             pre_proc.append(tif)
         else:
             post_proc.append(tif)
@@ -330,19 +294,16 @@ def run_from_temp():
     profile = rasterio.open(post_proc[0]).profile
     profile.update({"height": post_mosaic.shape[1], "width": post_mosaic.shape[2], "transform": trans})
 
-    pre_path = os.path.join(TEMP_FOLDER, "pre_merged.tif")
-    post_path = os.path.join(TEMP_FOLDER, "post_merged.tif")
+    pre_path = os.path.join(temp_folder, "pre_merged.tif")
+    post_path = os.path.join(temp_folder, "post_merged.tif")
     with rasterio.open(pre_path, "w", **profile) as dst:
         dst.write(pre_mosaic)
     with rasterio.open(post_path, "w", **profile) as dst:
         dst.write(post_mosaic)
 
-    detect_change(pre_path, post_path, OUTPUT_TIFF_PATH)
-    print("[INFO] Final flood map ready at:", OUTPUT_TIFF_PATH)
+    detect_change(pre_path, post_path, output_tiff_path)
+    print("[INFO] Final flood map ready at:", output_tiff_path)
 
-
-if __name__ == "__main__":
-     run()
 
 ################################## FILE 3 ##########################################
 
@@ -497,17 +458,28 @@ def run_pipeline():
     print("Pipeline complete.")
     
 
+def reproject_geometry(geom, src_crs, dst_crs):
+    if src_crs != dst_crs:
+        project = pyproj.Transformer.from_crs(src_crs, dst_crs, always_xy=True).transform
+        return transform(project, geom)
+    return geom
+
+## python main.py "{'s1PreFlood':'sentinel1_GRD_preflood','s1PostFlood':'sentinel1_GRD_postflood','s2PreFlood':'sentinel2_pre_flood','s2PostFlood':'sentinel2_post_flood','geomWKT':'POLYGON ((10.644988646837982 45.85539621678084, 10.644988646837982 46.06780100571985, 10.991744628283294 46.06780100571985, 10.991744628283294 45.85539621678084, 10.644988646837982 45.85539621678084))','slopeArtifact':'Slope_TN','slopeFileName':'slope_map25832.tif','lakeShapeArtifactName':'Lakes_TN','lakeShapeFileName':'idrspacq.shp','riverShapeArtifactName':'Rivers_TN','riverShapeFileName':'cif_pta2022_v.shp','output':'test_nk','eventDate':'2020/10/02','targetCRS':'EPSG:25832','polarization':'VV','dem_threshold':200,'slope_threshold':5,'noise_min_pixels':5,'river_buffer_meters':2}"
+
 if __name__ == "__main__":
 
-    global geo_wkt, target_crs, flood_date, polarization, dem_threshold, slope_threshold, noise_min_pixels, lakes_shapefile, combined_shapefile, combined_tiff, s1_tiff, s2_tiff, metadata_output_path, output_folder, temp_folder,before_flood,artifact_name,after_flood
+    global geo_wkt, target_crs, flood_date, proj4_text, polarization, dem_threshold, slope_threshold, noise_min_pixels
+    global lakes_shapefile, combined_shapefile, combined_tiff, s1_tiff, s2_tiff, metadata_output_path, output_folder
+    global temp_folder,before_flood,artifact_name,after_flood, pre_flood_files, post_flood_files, geometry, slope_map_path
+    global rivers_shapefile, river_buffer_meters
     # Parse command line arguments    
     args = sys.argv[1].replace("'","\"")
     json_input = json.loads(args)
     project_name=os.environ["PROJECT_NAME"]
-    s1PreFloodArtifactName = json_input['s1PreFlood'] # S1 post-flood
-    s1PostFloodArtifactName = json_input['s1PostFlood'] # S1 post-flood
-    s2PostFloodArtifactName = json_input['s2PostFlood'] # S2 post-flood
-    s2PreFloodArtifactName = json_input['s2PreFlood'] # S2 pre-flood
+    s1PreFloodArtifactName = json_input['s1PreFlood'] # S1 pre flood
+    s1PostFloodArtifactName = json_input['s1PostFlood'] # S1 post flood
+    s2PostFloodArtifactName = json_input['s2PostFlood'] # S2 post flood
+    s2PreFloodArtifactName = json_input['s2PreFlood'] # S2 pre flood
     slopeArtifactName = json_input['slopeArtifact'] # Slope aritfact "slope_map_path": os.path.join(BASE_DIR, "data", "slope", "slope_map25832.tif"),
     slopeFileName = json_input['slopeFileName'] # Slope file name
     lakeShapeArtifactName = json_input['lakeShapeArtifactName'] # Lake Shape artifact
@@ -561,32 +533,51 @@ if __name__ == "__main__":
     project = dh.get_or_create_project(project_name)
   
     # Download Sentinel-1 and Sentinel-2 artifacts
-    print(f"Downloading Sentinel-1 pre-flood artifact for project: {project_name} Name: {s1PreFloodArtifactName}")
-    sentinel1_preflood_artifact = project.get_artifact(s1PreFloodArtifactName)
-    sentinel1_zip_path = sentinel1_preflood_artifact.download(s1_zip_folder, overwrite=True)
-    print(f"Downloading Sentinel-1 post-flood artifact for project: {project_name} Name: {s1PostFloodArtifactName}")
-    sentinel1_postflood_artifact = project.get_artifact(s1PostFloodArtifactName)
-    sentinel1_zip_path = sentinel1_postflood_artifact.download(s1_zip_folder, overwrite=True)
-    print(f"Downloading Sentinel-2 post-flood artifact for project: {project_name} Name: {s2PostFloodArtifactName}")
-    sentinel2_postflood_artifact = project.get_artifact(s2PostFloodArtifactName)
-    sentinel2_zip_path2 = sentinel2_postflood_artifact.download(s2_post_flood_folder, overwrite=True)
-    print(f"Downloading Sentinel-2 pre-flood artifact for project: {project_name} Name: {s2PreFloodArtifactName}")
-    sentinel2_preflood_artifact = project.get_artifact(s2PreFloodArtifactName)
-    sentinel2_zip_path1 = sentinel2_preflood_artifact.download(s2_pre_flood_folder, overwrite=True)
+    # print(f"Downloading Sentinel-1 pre-flood artifact for project: {project_name} Name: {s1PreFloodArtifactName}")
+    # sentinel1_preflood_artifact = project.get_artifact(s1PreFloodArtifactName)
+    # sentinel1_zip_path = sentinel1_preflood_artifact.download(s1_zip_folder, overwrite=True)
+    # print(f"Downloading Sentinel-1 post-flood artifact for project: {project_name} Name: {s1PostFloodArtifactName}")
+    # sentinel1_postflood_artifact = project.get_artifact(s1PostFloodArtifactName)
+    # sentinel1_zip_path = sentinel1_postflood_artifact.download(s1_zip_folder, overwrite=True)
+    # print(f"Downloading Sentinel-2 post-flood artifact for project: {project_name} Name: {s2PostFloodArtifactName}")
+    # sentinel2_postflood_artifact = project.get_artifact(s2PostFloodArtifactName)
+    # sentinel2_zip_path2 = sentinel2_postflood_artifact.download(s2_post_flood_folder, overwrite=True)
+    # print(f"Downloading Sentinel-2 pre-flood artifact for project: {project_name} Name: {s2PreFloodArtifactName}")
+    # sentinel2_preflood_artifact = project.get_artifact(s2PreFloodArtifactName)
+    # sentinel2_zip_path1 = sentinel2_preflood_artifact.download(s2_pre_flood_folder, overwrite=True)
 
-    # Download Shapefile
-    print(f"Downloading slop artifact for project: {project_name} Name: {slopeArtifactName}")
-    slope_artifact = project.get_artifact(slopeArtifactName)
-    slope_path =  slope_artifact.download(os.path.join(BASE_DIR, "data", "Slopes_TN"), overwrite=True)
-    print(f"Downloading lake shape artifact for project: {project_name} Name: {lakeShapeArtifactName}")
-    lake_artifact = project.get_artifact(lakeShapeArtifactName)
-    lake_shp_path = lake_artifact.download(os.path.join(BASE_DIR, "data", lakeShapeArtifactName), overwrite=True)
-    print(f"Downloading River artifacts for project: {project_name} Name: {riverShapeArtifactName}")
-    rivers_artifact = project.get_artifact(riverShapeArtifactName)
-    rivers_shp_path = rivers_artifact.download(os.path.join(BASE_DIR, "data", riverShapeArtifactName), overwrite=True)
+    # Download Shapes & Slopes artifacts
+    # print(f"Downloading slop artifact for project: {project_name} Name: {slopeArtifactName}")
+    # slope_artifact = project.get_artifact(slopeArtifactName)
+    # slope_path =  slope_artifact.download(os.path.join(BASE_DIR, "data", "Slope_TN"), overwrite=True)
+    # print(f"Downloading lake shape artifact for project: {project_name} Name: {lakeShapeArtifactName}")
+    # lake_artifact = project.get_artifact(lakeShapeArtifactName)
+    # lake_shp_path = lake_artifact.download(os.path.join(BASE_DIR, "data", lakeShapeArtifactName), overwrite=True)
+    # print(f"Downloading River artifacts for project: {project_name} Name: {riverShapeArtifactName}")
+    # rivers_artifact = project.get_artifact(riverShapeArtifactName)
+    # rivers_shp_path = rivers_artifact.download(os.path.join(BASE_DIR, "data", riverShapeArtifactName), overwrite=True)
 
     flood_date = datetime.strptime(floodDate, "%Y/%m/%d") # "20201002"
     print(f"flood date: {flood_date}")
+
+    #S1_ZIP_PATH = s1_zip_folder
+    #TEMP_FOLDER = temp_folder
+    #OUTPUT_TIFF_PATH = s1_tiff
+    #FLOOD_DATE = flood_date 
+    #POLARIZATION = polarization
+    #SLOPE_THRESHOLD = slope_threshold
+    #SLOPE_MAP_PATH = slope_map_path  # Make sure slope_map_path is defined
+
+    pre_flood_files = sorted(glob.glob(os.path.join(s2_pre_flood_folder, "preprocess", "NDWI", "*.tif")))
+    post_flood_files = sorted(glob.glob(os.path.join(s2_post_flood_folder, "preprocess", "NDWI", "*.tif")))
+
+    # --- Check if data is available ---
+    if not pre_flood_files or not post_flood_files:
+        print("No Sentinel-2 data available for flood detection. Skipping processing.")
+    # else:
+        # reproject_geometry(geom, src_crs, dst_crs)
+        
+    proj4_text = 'ROJCS["ETRS89 / UTM zone 32N", GEOGCS["ETRS89", DATUM["European Terrestrial Reference System 1989", SPHEROID["GRS 1980",6378137.0, 298.257222101]], PRIMEM["Greenwich", 0.0], UNIT["degree", 0.017453292519943295]], PROJECTION["Transverse_Mercator"], PARAMETER["central_meridian", 9.0], PARAMETER["latitude_of_origin", 0.0], PARAMETER["scale_factor", 0.9996], PARAMETER["false_easting", 500000.0], PARAMETER["false_northing", 0.0], UNIT["m", 1.0], AXIS["Easting", EAST], AXIS["Northing", NORTH], AUTHORITY["EPSG","25832"]]'
 
     run_pipeline()
 
