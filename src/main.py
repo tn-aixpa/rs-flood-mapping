@@ -24,6 +24,10 @@ from scipy.ndimage import gaussian_gradient_magnitude
 from utils.skd_handler import upload_artifact
 from shapely.wkt import loads, dumps
 from rasterio.merge import merge
+import shutil
+import pyproj
+from shapely.ops import transform
+from shapely.geometry import mapping
 
 import digitalhub as dh
 
@@ -54,28 +58,33 @@ def load_rivers():
     rivers_buffered = rivers.buffer(river_buffer_meters)
     return gpd.GeoDataFrame(geometry=rivers_buffered, crs=target_crs)
 
+######### s2 processing ####################
 
-    # --- NDWI MEAN COMPUTATION ---
-def compute_mean_ndwi(files, geometry, fill_value=0.0):
-    ndwi_stack = []
-    ref_shape = None
-    ref_transform = None
-    ref_crs = None
+def run_s2():
 
-    for file in files:
-        with rasterio.open(file) as src:
-            try:
-                geom_proj = reproject_geometry(geometry, "EPSG:4326", src.crs)
-                geom_geojson = [mapping(geom_proj)]
-                ndwi_cropped, transform = mask(src, geom_geojson, crop=True, filled=True, nodata=fill_value)
-                ndwi = ndwi_cropped[0]
+    geometry = wkt.loads(geo_wkt)
+    
+    def reproject_geometry(geom, src_crs, dst_crs):
+        if src_crs != dst_crs:
+            project = pyproj.Transformer.from_crs(src_crs, dst_crs, always_xy=True).transform
+            return transform(project, geom)
+        return geom
 
-                if ref_shape is None:
-                    ref_shape = ndwi.shape
-                    ref_transform = transform
-                    ref_crs = src.crs
-                else:
-                    if ndwi.shape != ref_shape:
+    def compute_mean_ndwi(files, geometry, fill_value=0.0):
+        ndwi_stack = []
+        ref_shape, ref_transform, ref_crs = None, None, None
+
+        for file in files:
+            with rasterio.open(file) as src:
+                try:
+                    geom_proj = reproject_geometry(geometry, "EPSG:4326", src.crs)
+                    geom_geojson = [mapping(geom_proj)]
+                    ndwi_cropped, transform = mask(src, geom_geojson, crop=True, filled=True, nodata=fill_value)
+                    ndwi = ndwi_cropped[0]
+
+                    if ref_shape is None:
+                        ref_shape, ref_transform, ref_crs = ndwi.shape, transform, src.crs
+                    elif ndwi.shape != ref_shape:
                         ndwi_resampled = np.full(ref_shape, fill_value, dtype=np.float32)
                         rasterio.warp.reproject(
                             source=ndwi,
@@ -91,37 +100,34 @@ def compute_mean_ndwi(files, geometry, fill_value=0.0):
                         ndwi = ndwi_resampled
 
                     ndwi_stack.append(ndwi)
-            except ValueError as e:
+
+                except ValueError as e:
                     print(f"Skipping {file}: {e}")
                     continue
 
         if not ndwi_stack:
             raise ValueError("No valid NDWI rasters found for AOI.")
 
-        ndwi_stack = np.array(ndwi_stack)
-        mean_ndwi = np.mean(ndwi_stack, axis=0)
+        mean_ndwi = np.mean(np.array(ndwi_stack), axis=0)
         return mean_ndwi, ref_transform, ref_crs
 
     # --- PROCESS NDWI ---
-    ndwi_pre, pre_transform, pre_crs = compute_mean_ndwi(pre_flood_files, geometry)
-    ndwi_post, post_transform, post_crs = compute_mean_ndwi(post_flood_files, geometry)
+    ndwi_pre, pre_transform, pre_crs = compute_mean_ndwi(s2_pre_flood_files, geometry)
+    ndwi_post, post_transform, post_crs = compute_mean_ndwi(s2_post_flood_files, geometry)
     ndwi_diff = ndwi_post - ndwi_pre
 
     # --- FLOOD DETECTION ---
-    ndwi_threshold = 0.2     # NDWI > 0.2 generally indicates surface water (typical range: 0.2–0.3)
-    change_threshold = 0.1   # ΔNDWI > 0.1 indicates new water appearance (typical range: 0.05–0.2)
+    ndwi_threshold = 0.2
+    change_threshold = 0.1
 
     pre_water = ndwi_pre > ndwi_threshold
     post_water = ndwi_post > ndwi_threshold
     new_water = (post_water.astype(int) - pre_water.astype(int)) == 1
     flood_pixels = (ndwi_diff > change_threshold) & new_water
 
-    # --- SAVE FLOOD MASK AS TIFF ---
     def save_flood_mask_tiff(flood_array, transform, crs, output_path, nodata=0):
-        """Save binary flood mask to GeoTIFF."""
         height, width = flood_array.shape
         flood_array = flood_array.astype(rasterio.uint8)
-
         with rasterio.open(
             output_path,
             "w",
@@ -135,13 +141,10 @@ def compute_mean_ndwi(files, geometry, fill_value=0.0):
             nodata=nodata
         ) as dst:
             dst.write(flood_array, 1)
-
         print(f"Flood mask saved to: {output_path}")
 
-        # --- Save output ---
-        output_tiff_path = os.path.join(output_folder, "S2-flood_layer.tif")
-        save_flood_mask_tiff(flood_pixels, post_transform, post_crs, output_tiff_path)
-
+    output_tiff_path = os.path.join(output_folder, "S2-flood_layer.tif")
+    save_flood_mask_tiff(flood_pixels, post_transform, post_crs, output_tiff_path)
 
 ########################FILE 2#########################################33
 # S1 - Processing
@@ -228,7 +231,7 @@ def detect_change(pre_path, post_path, output_path):
         with rasterio.open(output_path, 'w', **profile) as dst:
             dst.write(flood_mask, 1)
 
-def run():
+def run_s1():
     if not os.path.exists(temp_folder):
         os.makedirs(temp_folder)
 
@@ -317,10 +320,11 @@ def run_from_temp():
 
 ################################## FILE 3 ##########################################
 
-def combine_s1_s2(s1_path, s2_path, combined_tiff, combined_shp):
+def combine_s1_s2(s1_tiff, s2_tiff, combined_tiff, combined_shp):
+
     print("Combining Sentinel-1 and Sentinel-2 masks...")
     try:
-        with rasterio.open(s1_path) as s1, rasterio.open(s2_path) as s2:
+        with rasterio.open(s1_tiff) as s1, rasterio.open(s2_tiff) as s2:
             s1_data = s1.read(1)
             s2_data = s2.read(1)  
             s1_nodata = s1.nodata if s1.nodata is not None else 0
@@ -453,7 +457,10 @@ def write_metadata():
 def run_pipeline():
     print("Starting Flood Mapping Pipeline")
 
-    run()
+    #run_s1()
+    print("Sentinel-1 processing complete.")
+    run_s2()
+    print("Sentinel-2 processing complete.")
 
     # Combine S1 + S2
     combine_s1_s2(
@@ -480,8 +487,8 @@ if __name__ == "__main__":
 
     global geo_wkt, target_crs, flood_date, proj4_text, polarization, dem_threshold, slope_threshold, noise_min_pixels
     global lakes_shapefile, combined_shapefile, combined_tiff, s1_tiff, s2_tiff, metadata_output_path, output_folder
-    global temp_folder,before_flood,artifact_name,after_flood, pre_flood_files, post_flood_files, geometry, slope_map_path
-    global rivers_shapefile, river_buffer_meters
+    global temp_folder,before_flood,artifact_name,after_flood, s2_post_flood_files, s2_pre_flood_files, geometry, slope_map_path
+    global rivers_shapefile, river_buffer_meters, slopeFileName, lakeShapeFileName, riverShapeFileName
     # Parse command line arguments    
     args = sys.argv[1].replace("'","\"")
     json_input = json.loads(args)
@@ -522,7 +529,7 @@ if __name__ == "__main__":
 
     # Output files
     s1_tiff = os.path.join(BASE_DIR, "data", "flood_outputs", "S1-flood_layer.tif")
-    s2_tiff = os.path.join(BASE_DIR, "data", "flood_outputs", "S2_flood_mask.tif")
+    s2_tiff = os.path.join(BASE_DIR, "data", "flood_outputs", "S2-flood_layer.tif")
     combined_tiff = os.path.join(BASE_DIR, "data", "flood_outputs", "flood_detection_layer.tif")
     combined_shapefile = os.path.join(BASE_DIR, "data", "flood_outputs", "flood_detection_layer.shp")
     metadata_output_path = os.path.join(BASE_DIR, "data", "flood_outputs", "flood_detection_layer_metadata.json")
@@ -570,19 +577,14 @@ if __name__ == "__main__":
     flood_date = datetime.strptime(floodDate, "%Y-%m-%d") # "2020-10-02"
     print(f"flood date: {flood_date}")
 
-    #S1_ZIP_PATH = s1_zip_folder
-    #TEMP_FOLDER = temp_folder
-    #OUTPUT_TIFF_PATH = s1_tiff
-    #FLOOD_DATE = flood_date 
-    #POLARIZATION = polarization
-    #SLOPE_THRESHOLD = slope_threshold
-    #SLOPE_MAP_PATH = slope_map_path  # Make sure slope_map_path is defined
+    s2_pre_flood_files = sorted(glob.glob(os.path.join(s2_pre_flood_folder, "preprocess", "NDWI", "*.tif")))
+    s2_post_flood_files = sorted(glob.glob(os.path.join(s2_post_flood_folder, "preprocess", "NDWI", "*.tif")))
 
-    pre_flood_files = sorted(glob.glob(os.path.join(s2_pre_flood_folder, "preprocess", "NDWI", "*.tif")))
-    post_flood_files = sorted(glob.glob(os.path.join(s2_post_flood_folder, "preprocess", "NDWI", "*.tif")))
+    print (f"Found {len(s2_pre_flood_files)} pre-flood NDWI files and {len(s2_post_flood_files)} post-flood NDWI files.")
+
 
     # --- Check if data is available ---
-    if not pre_flood_files or not post_flood_files:
+    if not s2_pre_flood_files or not s2_post_flood_files:
         print("No Sentinel-2 data available for flood detection. Skipping processing.")
     # else:
         # reproject_geometry(geom, src_crs, dst_crs)
