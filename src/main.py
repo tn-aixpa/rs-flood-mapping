@@ -277,10 +277,10 @@ def run():
     with rasterio.open(post_path, "w", **profile) as dst:
         dst.write(post_mosaic)
 
-    detect_change(pre_path, post_path, output_tiff_path)
+    detect_change(pre_path, post_path, s1_tiff)
 
     shutil.rmtree(temp_folder)
-    print("[INFO] Final flood map ready at:", output_tiff_path)
+    print("[INFO] Final flood map ready at:", s1_tiff)
 
 def run_from_temp():
     pre_proc = []
@@ -311,8 +311,8 @@ def run_from_temp():
     with rasterio.open(post_path, "w", **profile) as dst:
         dst.write(post_mosaic)
 
-    detect_change(pre_path, post_path, output_tiff_path)
-    print("[INFO] Final flood map ready at:", output_tiff_path)
+    detect_change(pre_path, post_path, s1_tiff)
+    print("[INFO] Final flood map ready at:", s1_tiff)
 
 
 ################################## FILE 3 ##########################################
@@ -474,7 +474,7 @@ def reproject_geometry(geom, src_crs, dst_crs):
         return transform(project, geom)
     return geom
 
-## python main.py "{'s1PreFlood':'sentinel1_GRD_preflood','s1PostFlood':'sentinel1_GRD_postflood','s2PreFlood':'sentinel2_pre_flood','s2PostFlood':'sentinel2_post_flood','geomWKT':'POLYGON ((10.644988646837982 45.85539621678084, 10.644988646837982 46.06780100571985, 10.991744628283294 46.06780100571985, 10.991744628283294 45.85539621678084, 10.644988646837982 45.85539621678084))','slopeArtifact':'Slope_TN','slopeFileName':'slope_map25832.tif','lakeShapeArtifactName':'Lakes_TN','lakeShapeFileName':'idrspacq.shp','riverShapeArtifactName':'Rivers_TN','riverShapeFileName':'cif_pta2022_v.shp','output':'test_nk','eventDate':'2020/10/02','targetCRS':'EPSG:25832','polarization':'VV','dem_threshold':200,'slope_threshold':5,'noise_min_pixels':5,'river_buffer_meters':2}"
+## python main.py "{'s1PreFlood':'sentinel1_GRD_preflood','s1PostFlood':'sentinel1_GRD_postflood','s2PreFlood':'sentinel2_pre_flood','s2PostFlood':'sentinel2_post_flood','geomWKT':'POLYGON ((10.644988646837982 45.85539621678084, 10.644988646837982 46.06780100571985, 10.991744628283294 46.06780100571985, 10.991744628283294 45.85539621678084, 10.644988646837982 45.85539621678084))','slopeArtifact':'Slope_TN','slopeFileName':'slope_map25832.tif','lakeShapeArtifactName':'Lakes_TN','lakeShapeFileName':'idrspacq.shp','riverShapeArtifactName':'Rivers_TN','riverShapeFileName':'cif_pta2022_v.shp','output':'test_nk','eventDate':'2020-10-02','targetCRS':'EPSG:25832','polarization':'VV','dem_threshold':200,'slope_threshold':5,'noise_min_pixels':5,'river_buffer_meters':2}"
 
 if __name__ == "__main__":
 
@@ -567,7 +567,7 @@ if __name__ == "__main__":
     rivers_artifact = project.get_artifact(riverShapeArtifactName)
     rivers_shp_path = rivers_artifact.download(os.path.join(BASE_DIR, "data", riverShapeArtifactName), overwrite=True)
 
-    flood_date = datetime.strptime(floodDate, "%Y/%m/%d") # "20201002"
+    flood_date = datetime.strptime(floodDate, "%Y-%m-%d") # "2020-10-02"
     print(f"flood date: {flood_date}")
 
     #S1_ZIP_PATH = s1_zip_folder
