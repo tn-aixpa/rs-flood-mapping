@@ -13,6 +13,7 @@ from rasterio.warp import reproject, Resampling, calculate_default_transform
 from rasterio.features import shapes
 import geopandas as gpd
 from shapely.geometry import shape
+from shapely import wkt
 import xml.etree.ElementTree as ET
 from snapista import Graph, Operator
 import zipfile
@@ -27,8 +28,8 @@ from rasterio.merge import merge
 import digitalhub as dh
 
 def load_aoi():
-    geom_wkt = geometry.wkt # or directly use your global 'geometry'
-    geom = wkt.loads(geom_wkt)
+    # geom_wkt = geometry.wkt # or directly use your global 'geometry'
+    geom = wkt.loads(geo_wkt)
     gdf = gpd.GeoDataFrame(geometry=[geom], crs="EPSG:4326")
     return gdf.to_crs(target_crs)
 
@@ -230,7 +231,7 @@ def run():
 
     geo_wkt = get_aoi_wkt()
     pre_files, post_files = [], []
-    for file in sorted(glob(os.path.join(s1_zip_folder, "*.zip"))):
+    for file in sorted(glob.glob(os.path.join(s1_zip_folder, "*.zip"))):
         date = extract_date_from_filename(os.path.basename(file))
         if not date:
             continue
