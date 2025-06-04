@@ -481,7 +481,7 @@ def reproject_geometry(geom, src_crs, dst_crs):
         return transform(project, geom)
     return geom
 
-## python main.py "{'s1PreFlood':'sentinel1_GRD_preflood','s1PostFlood':'sentinel1_GRD_postflood','s2PreFlood':'sentinel2_pre_flood','s2PostFlood':'sentinel2_post_flood','geomWKT':'POLYGON ((10.644988646837982 45.85539621678084, 10.644988646837982 46.06780100571985, 10.991744628283294 46.06780100571985, 10.991744628283294 45.85539621678084, 10.644988646837982 45.85539621678084))','slopeArtifact':'Slope_TN','slopeFileName':'slope_map25832.tif','lakeShapeArtifactName':'Lakes_TN','lakeShapeFileName':'idrspacq.shp','riverShapeArtifactName':'Rivers_TN','riverShapeFileName':'cif_pta2022_v.shp','output':'test_nk','eventDate':'2020-10-02','targetCRS':'EPSG:25832','polarization':'VV','dem_threshold':200,'slope_threshold':5,'noise_min_pixels':5,'river_buffer_meters':2}"
+## python main.py "{'s1PreFlood':'sentinel1_GRD_preflood','s1PostFlood':'sentinel1_GRD_postflood','s2PreFlood':'sentinel2_pre_flood','s2PostFlood':'sentinel2_post_flood','geomWKT':'POLYGON ((10.644988646837982 45.85539621678084, 10.644988646837982 46.06780100571985, 10.991744628283294 46.06780100571985, 10.991744628283294 45.85539621678084, 10.644988646837982 45.85539621678084))','slopeArtifact':'Slope_TN','slopeFileName':'slope_map25832.tif','lakeShapeArtifactName':'Lakes_TN','lakeShapeFileName':'idrspacq.shp','riverShapeArtifactName':'Rivers_TN','riverShapeFileName':'cif_pta2022_v.shp','output':'test_nk','eventDate':'2020-10-02','targetCRS':'EPSG:25832','polarization':'VH','dem_threshold':700,'slope_threshold':7,'noise_min_pixels':15,'river_buffer_meters':2}"
 
 if __name__ == "__main__":
 
