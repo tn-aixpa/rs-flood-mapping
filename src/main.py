@@ -457,7 +457,7 @@ def write_metadata():
 def run_pipeline():
     print("Starting Flood Mapping Pipeline")
 
-    #run_s1()
+    run_s1()
     print("Sentinel-1 processing complete.")
     run_s2()
     print("Sentinel-2 processing complete.")
