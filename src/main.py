@@ -481,7 +481,7 @@ def reproject_geometry(geom, src_crs, dst_crs):
         return transform(project, geom)
     return geom
 
-## python main.py "{'s1PreFlood':'sentinel1_GRD_preflood','s1PostFlood':'sentinel1_GRD_postflood','s2PreFlood':'sentinel2_pre_flood','s2PostFlood':'sentinel2_post_flood','geomWKT':'POLYGON ((10.644988646837982 45.85539621678084, 10.644988646837982 46.06780100571985, 10.991744628283294 46.06780100571985, 10.991744628283294 45.85539621678084, 10.644988646837982 45.85539621678084))','slopeArtifact':'Slope_TN','slopeFileName':'slope_map25832.tif','lakeShapeArtifactName':'Lakes_TN','lakeShapeFileName':'idrspacq.shp','riverShapeArtifactName':'Rivers_TN','riverShapeFileName':'cif_pta2022_v.shp','output':'test_nk','eventDate':'2020-10-02','targetCRS':'EPSG:25832','polarization':'VH','dem_threshold':700,'slope_threshold':7,'noise_min_pixels':15,'river_buffer_meters':2}"
+## python main.py "{'s1PreFlood':'sentinel1_GRD_preflood','s1PostFlood':'sentinel1_GRD_postflood','s2PreFlood':'sentinel2_pre_flood','s2PostFlood':'sentinel2_post_flood','geomWKT':'POLYGON ((10.644988646837982 45.85539621678084, 10.644988646837982 46.06780100571985, 10.991744628283294 46.06780100571985, 10.991744628283294 45.85539621678084, 10.644988646837982 45.85539621678084))','slopeArtifact':'Slopes_TN','slopeFileName':'slope_map25832.tif','lakeShapeArtifactName':'Lakes_TN','lakeShapeFileName':'idrspacq.shp','riverShapeArtifactName':'Rivers_TN','riverShapeFileName':'cif_pta2022_v.shp','output':'test_nk','eventDate':'2020-10-02','targetCRS':'EPSG:25832','polarization':'VH','dem_threshold':700,'slope_threshold':7,'noise_min_pixels':15,'river_buffer_meters':2}"
 
 if __name__ == "__main__":
 
@@ -566,13 +566,13 @@ if __name__ == "__main__":
     # Download Shapes & Slopes artifacts
     print(f"Downloading slop artifact for project: {project_name} Name: {slopeArtifactName}")
     slope_artifact = project.get_artifact(slopeArtifactName)
-    slope_path =  slope_artifact.download(os.path.join(BASE_DIR, "data", "Slope_TN"), overwrite=True)
+    slope_path =  slope_artifact.download(os.path.join(BASE_DIR, "data", "Slopes_TN"), overwrite=True)
     print(f"Downloading lake shape artifact for project: {project_name} Name: {lakeShapeArtifactName}")
     lake_artifact = project.get_artifact(lakeShapeArtifactName)
-    lake_shp_path = lake_artifact.download(os.path.join(BASE_DIR, "data", lakeShapeArtifactName), overwrite=True)
+    lake_shp_path = lake_artifact.download(os.path.join(BASE_DIR, "data", "Lakes_TN"), overwrite=True)
     print(f"Downloading River artifacts for project: {project_name} Name: {riverShapeArtifactName}")
     rivers_artifact = project.get_artifact(riverShapeArtifactName)
-    rivers_shp_path = rivers_artifact.download(os.path.join(BASE_DIR, "data", riverShapeArtifactName), overwrite=True)
+    rivers_shp_path = rivers_artifact.download(os.path.join(BASE_DIR, "data", "Rivers_TN"), overwrite=True)
 
     flood_date = datetime.strptime(floodDate, "%Y-%m-%d") # "2020-10-02"
     print(f"flood date: {flood_date}")
