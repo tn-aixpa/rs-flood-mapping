@@ -150,7 +150,7 @@ def compute_mean_ndwi(files, geometry, fill_value=0.0):
 def extract_date_from_filename(filename):
     try:
         parts = filename.split('_')
-        return datetime.datetime.strptime(parts[4][:8], "%Y%m%d")
+        return datetime.strptime(parts[4][:8], "%Y%m%d")
     except:
         return None
 
@@ -205,7 +205,7 @@ def detect_change(pre_path, post_path, output_path):
         flood_mask = (diff < -0.01).astype(np.uint8)
 
         try:
-            with rasterio.open(SLOPE_MAP_PATH) as slope_src:
+            with rasterio.open(slope_map_path) as slope_src:
                 slope_data = slope_src.read(1).astype(np.float32)
                 reprojected = np.empty_like(flood_mask, dtype=np.float32)
                 reproject(
@@ -217,9 +217,12 @@ def detect_change(pre_path, post_path, output_path):
                     dst_crs=profile["crs"],
                     resampling=Resampling.bilinear
                 )
-                flood_mask[reprojected > SLOPE_THRESHOLD] = 0
-        except:
-            pass
+                flood_mask[reprojected > slope_threshold] = 0
+                print("Slope masking applied.")
+        except Exception as e:
+            print("Slope masking skipped. Reason:", e)
+        # except:
+        #     pass
 
         profile.update(dtype=rasterio.uint8, count=1)
         with rasterio.open(output_path, 'w', **profile) as dst:
@@ -231,13 +234,19 @@ def run():
 
     geo_wkt = get_aoi_wkt()
     pre_files, post_files = [], []
+    print(f"Flood date: {flood_date}")
     for file in sorted(glob.glob(os.path.join(s1_zip_folder, "*.zip"))):
+        print(f"Processing file: {file}")
         date = extract_date_from_filename(os.path.basename(file))
+        print(f"Extracted date: {date}")
+        
         if not date:
             continue
         if date < flood_date:
+            print(f"Adding to pre-flood files: {file}")
             pre_files.append(file)
         else:
+            print(f"Adding to post-flood files: {file}")
             post_files.append(file)
 
     pre_proc = []
@@ -253,7 +262,7 @@ def run():
             post_proc.append(out)
 
     if not pre_proc or not post_proc:
-        print("[ERROR] Insufficient pre/post images")
+        print("[WARNING] Insufficient pre/post images")
         return
 
     pre_mosaic, _ = merge([rasterio.open(f) for f in pre_proc])
@@ -534,29 +543,29 @@ if __name__ == "__main__":
     project = dh.get_or_create_project(project_name)
   
     # Download Sentinel-1 and Sentinel-2 artifacts
-    print(f"Downloading Sentinel-1 pre-flood artifact for project: {project_name} Name: {s1PreFloodArtifactName}")
-    sentinel1_preflood_artifact = project.get_artifact(s1PreFloodArtifactName)
-    sentinel1_zip_path = sentinel1_preflood_artifact.download(s1_zip_folder, overwrite=True)
-    print(f"Downloading Sentinel-1 post-flood artifact for project: {project_name} Name: {s1PostFloodArtifactName}")
-    sentinel1_postflood_artifact = project.get_artifact(s1PostFloodArtifactName)
-    sentinel1_zip_path = sentinel1_postflood_artifact.download(s1_zip_folder, overwrite=True)
-    print(f"Downloading Sentinel-2 post-flood artifact for project: {project_name} Name: {s2PostFloodArtifactName}")
-    sentinel2_postflood_artifact = project.get_artifact(s2PostFloodArtifactName)
-    sentinel2_zip_path2 = sentinel2_postflood_artifact.download(s2_post_flood_folder, overwrite=True)
-    print(f"Downloading Sentinel-2 pre-flood artifact for project: {project_name} Name: {s2PreFloodArtifactName}")
-    sentinel2_preflood_artifact = project.get_artifact(s2PreFloodArtifactName)
-    sentinel2_zip_path1 = sentinel2_preflood_artifact.download(s2_pre_flood_folder, overwrite=True)
+    # print(f"Downloading Sentinel-1 pre-flood artifact for project: {project_name} Name: {s1PreFloodArtifactName}")
+    # sentinel1_preflood_artifact = project.get_artifact(s1PreFloodArtifactName)
+    # sentinel1_zip_path = sentinel1_preflood_artifact.download(s1_zip_folder, overwrite=True)
+    # print(f"Downloading Sentinel-1 post-flood artifact for project: {project_name} Name: {s1PostFloodArtifactName}")
+    # sentinel1_postflood_artifact = project.get_artifact(s1PostFloodArtifactName)
+    # sentinel1_zip_path = sentinel1_postflood_artifact.download(s1_zip_folder, overwrite=True)
+    # print(f"Downloading Sentinel-2 post-flood artifact for project: {project_name} Name: {s2PostFloodArtifactName}")
+    # sentinel2_postflood_artifact = project.get_artifact(s2PostFloodArtifactName)
+    # sentinel2_zip_path2 = sentinel2_postflood_artifact.download(s2_post_flood_folder, overwrite=True)
+    # print(f"Downloading Sentinel-2 pre-flood artifact for project: {project_name} Name: {s2PreFloodArtifactName}")
+    # sentinel2_preflood_artifact = project.get_artifact(s2PreFloodArtifactName)
+    # sentinel2_zip_path1 = sentinel2_preflood_artifact.download(s2_pre_flood_folder, overwrite=True)
 
     # Download Shapes & Slopes artifacts
-    print(f"Downloading slop artifact for project: {project_name} Name: {slopeArtifactName}")
-    slope_artifact = project.get_artifact(slopeArtifactName)
-    slope_path =  slope_artifact.download(os.path.join(BASE_DIR, "data", "Slope_TN"), overwrite=True)
-    print(f"Downloading lake shape artifact for project: {project_name} Name: {lakeShapeArtifactName}")
-    lake_artifact = project.get_artifact(lakeShapeArtifactName)
-    lake_shp_path = lake_artifact.download(os.path.join(BASE_DIR, "data", lakeShapeArtifactName), overwrite=True)
-    print(f"Downloading River artifacts for project: {project_name} Name: {riverShapeArtifactName}")
-    rivers_artifact = project.get_artifact(riverShapeArtifactName)
-    rivers_shp_path = rivers_artifact.download(os.path.join(BASE_DIR, "data", riverShapeArtifactName), overwrite=True)
+    # print(f"Downloading slop artifact for project: {project_name} Name: {slopeArtifactName}")
+    # slope_artifact = project.get_artifact(slopeArtifactName)
+    # slope_path =  slope_artifact.download(os.path.join(BASE_DIR, "data", "Slope_TN"), overwrite=True)
+    # print(f"Downloading lake shape artifact for project: {project_name} Name: {lakeShapeArtifactName}")
+    # lake_artifact = project.get_artifact(lakeShapeArtifactName)
+    # lake_shp_path = lake_artifact.download(os.path.join(BASE_DIR, "data", lakeShapeArtifactName), overwrite=True)
+    # print(f"Downloading River artifacts for project: {project_name} Name: {riverShapeArtifactName}")
+    # rivers_artifact = project.get_artifact(riverShapeArtifactName)
+    # rivers_shp_path = rivers_artifact.download(os.path.join(BASE_DIR, "data", riverShapeArtifactName), overwrite=True)
 
     flood_date = datetime.strptime(floodDate, "%Y/%m/%d") # "20201002"
     print(f"flood date: {flood_date}")
