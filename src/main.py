@@ -28,6 +28,7 @@ import shutil
 import pyproj
 from shapely.ops import transform
 from shapely.geometry import mapping
+from skimage.morphology import remove_small_objects
 
 import digitalhub as dh
 
@@ -221,11 +222,20 @@ def detect_change(pre_path, post_path, output_path):
         profile = post.profile
         pre_band = pre.read(1).astype(np.float32)
         post_band = post.read(1).astype(np.float32)
-        pre_band[pre_band == 0] = np.nan
-        post_band[post_band == 0] = np.nan
-        diff = post_band - pre_band
-        flood_mask = (diff < -0.01).astype(np.uint8)
 
+        # Avoid division by zero
+        pre_band[pre_band <= 0] = 1e-6
+        post_band[post_band <= 0] = 1e-6
+
+        # Change detection using log-ratio
+        log_ratio = 10 * np.log10(post_band / pre_band)
+        flood_mask = (log_ratio < -4.5)
+        flood_mask = remove_small_objects(flood_mask, min_size=100)
+       
+
+        flood_mask = flood_mask.astype(np.uint8)
+
+        # Optional: slope masking
         try:
             with rasterio.open(slope_map_path) as slope_src:
                 slope_data = slope_src.read(1).astype(np.float32)
@@ -243,8 +253,6 @@ def detect_change(pre_path, post_path, output_path):
                 print("Slope masking applied.")
         except Exception as e:
             print("Slope masking skipped. Reason:", e)
-        # except:
-        #     pass
 
         profile.update(dtype=rasterio.uint8, count=1)
         with rasterio.open(output_path, 'w', **profile) as dst:
