@@ -63,16 +63,19 @@ def load_rivers():
 def run_s2():
 
     geometry = wkt.loads(geo_wkt)
-    
+
     def reproject_geometry(geom, src_crs, dst_crs):
         if src_crs != dst_crs:
             project = pyproj.Transformer.from_crs(src_crs, dst_crs, always_xy=True).transform
             return transform(project, geom)
         return geom
 
-    def compute_mean_ndwi(files, geometry, fill_value=0.0):
+    def compute_mean_ndwi(files, geometry, fill_value=0.0,
+                          reference_shape=None, reference_transform=None, reference_crs=None):  # UPDATED
         ndwi_stack = []
-        ref_shape, ref_transform, ref_crs = None, None, None
+        ref_shape = reference_shape
+        ref_transform = reference_transform
+        ref_crs = reference_crs
 
         for file in files:
             with rasterio.open(file) as src:
@@ -83,8 +86,10 @@ def run_s2():
                     ndwi = ndwi_cropped[0]
 
                     if ref_shape is None:
-                        ref_shape, ref_transform, ref_crs = ndwi.shape, transform, src.crs
-                    elif ndwi.shape != ref_shape:
+                        ref_shape = ndwi.shape
+                        ref_transform = transform
+                        ref_crs = src.crs
+                    elif ndwi.shape != ref_shape:  # NEW BLOCK
                         ndwi_resampled = np.full(ref_shape, fill_value, dtype=np.float32)
                         rasterio.warp.reproject(
                             source=ndwi,
@@ -106,14 +111,27 @@ def run_s2():
                     continue
 
         if not ndwi_stack:
-            raise ValueError("No valid NDWI rasters found for AOI.")
+            print("No valid NDWI rasters found for AOI. Skipping Sentinel-2 processing.")
+            return None, None, None  # UPDATED
 
         mean_ndwi = np.mean(np.array(ndwi_stack), axis=0)
         return mean_ndwi, ref_transform, ref_crs
 
     # --- PROCESS NDWI ---
     ndwi_pre, pre_transform, pre_crs = compute_mean_ndwi(s2_pre_flood_files, geometry)
-    ndwi_post, post_transform, post_crs = compute_mean_ndwi(s2_post_flood_files, geometry)
+    if ndwi_pre is None:  # NEW CHECK
+        return
+
+    ndwi_post, _, _ = compute_mean_ndwi(
+        s2_post_flood_files,
+        geometry,
+        reference_shape=ndwi_pre.shape,
+        reference_transform=pre_transform,
+        reference_crs=pre_crs
+    )
+    if ndwi_post is None:  # NEW CHECK
+        return
+
     ndwi_diff = ndwi_post - ndwi_pre
 
     # --- FLOOD DETECTION ---
@@ -144,7 +162,8 @@ def run_s2():
         print(f"Flood mask saved to: {output_path}")
 
     output_tiff_path = os.path.join(output_folder, "S2-flood_layer.tif")
-    save_flood_mask_tiff(flood_pixels, post_transform, post_crs, output_tiff_path)
+    save_flood_mask_tiff(flood_pixels, pre_transform, pre_crs, output_tiff_path)
+    print(f"Sentinel-2 flood detection completed. Output saved to: {output_tiff_path}")
 
 ########################FILE 2#########################################33
 # S1 - Processing
