@@ -150,3 +150,86 @@ Check the status of function.
 ```python
 run.refresh().status.state
 ```
+
+### Post flood Sentinel1 data +7days
+
+Register 'download_images_s1' operation in the project.
+
+```python
+function_s1 = proj.new_function("download_images_s1",kind="container",image="ghcr.io/tn-aixpa/sentinel-tools:0.11.1_dev",command="python")
+```
+
+Run this function with input parameters as shown below. The parameters passed for sentinel-1 downloads includes the starts and ends dates corresponding to period of 7 days from flood event date. The ouput of this step will be logged inside to the platfrom project context as indicated by parameter 'artifact_name' ('sentinel1_GRD_postflood').Several other paramters can be configures as per requirements for e.g. geometry, cloud cover percentage etc.
+
+Run the function. As a result the post flood sentinel-2 data is logged as project artifact('sentinel2_post_flood')
+
+```python
+string_dict_data = """{
+  "satelliteParams": {
+          "satelliteType": "Sentinel1",
+          "processingLevel": "LEVEL1",
+          "sensorMode": "IW",
+          "productType": "GRD"
+      },
+      'startDate': '2020-10-02',
+      'endDate': '2020-10-09',
+      'geometry': 'POLYGON ((10.644988646837982 45.85539621678084, 10.644988646837982 46.06780100571985, 10.991744628283294 46.06780100571985, 10.991744628283294 45.85539621678084, 10.644988646837982 45.85539621678084))',
+      'area_sampling': 'True',
+      'tmp_path_same_folder_dwl':'True',
+      'artifact_name': 'sentinel1_GRD_postflood'
+  }"""
+list_args =  ["main.py",string_dict_data]
+```
+
+```python
+run = function_s1.run(action="job",
+        secrets=["CDSETOOL_ESA_USER","CDSETOOL_ESA_PASSWORD"],
+        fs_group='8877',
+        args=list_args,
+        volumes=[{
+            "volume_type": "persistent_volume_claim",
+            "name": "volume-flood",
+            "mount_path": "/app/files",
+            "spec": {
+                "size": "100Gi"
+            }}])
+```
+
+### Pre flood Sentinel1 data -7days
+
+Similary download the sentine-1 data pre flood event.
+
+```python
+string_dict_data = """{
+  "satelliteParams": {
+          "satelliteType": "Sentinel1",
+          "processingLevel": "LEVEL1",
+          "sensorMode": "IW",
+          "productType": "GRD"
+      },
+      'startDate': '2020-09-25',
+      'endDate': '2020-10-02',
+      'geometry': 'POLYGON ((10.644988646837982 45.85539621678084, 10.644988646837982 46.06780100571985, 10.991744628283294 46.06780100571985, 10.991744628283294 45.85539621678084, 10.644988646837982 45.85539621678084))',
+      'area_sampling': 'True',
+      'tmp_path_same_folder_dwl':'True',
+      'artifact_name': 'sentinel1_GRD_preflood'
+  }"""
+
+# s3 path is not mandatory
+
+list_args =  ["main.py",string_dict_data]
+```
+
+```python
+run = function_s1.run(action="job",
+        secrets=["CDSETOOL_ESA_USER","CDSETOOL_ESA_PASSWORD"],
+        fs_group='8877',
+        args=list_args,
+        volumes=[{
+            "volume_type": "persistent_volume_claim",
+            "name": "volume-flood",
+            "mount_path": "/app/files",
+            "spec": {
+                "size": "100Gi"
+            }}])
+```
