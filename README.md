@@ -34,30 +34,21 @@ The pipelines takes around 1-2 hours to complete with 16 CPUs and 64GB Ram for p
 https://identity.dataspace.copernicus.eu/auth/realms/CDSE/login-actions/registration?client_id=cdse-public&tab_id=FIiRPJeoiX4
 ```
 
-- Download Lakes Shape data
-  Navigate to the page
+- Download Lakes, Rivers Shape data from <siat.provincia.tn.it> portal. Direct links are given below
+
+  Lakes
 
   ```
-  https://siat.provincia.tn.it/geonetwork/srv/ita/catalog.search#/home
+   https://siat.provincia.tn.it/geonetwork/srv/ita/catalog.search#/metadata/p_TN:0f1fdc33-5c71-4c6d-81e7-25eb2ab0e599
   ```
 
-  search for data 'Laghi e specchi d'acqua' and download.
-  Direct link: https://siat.provincia.tn.it/geonetwork/srv/ita/catalog.search#/metadata/p_TN:0f1fdc33-5c71-4c6d-81e7-25eb2ab0e599
+  Rivers
 
-- Download River data
-  Navigate to the page
   ```
-  https://siat.provincia.tn.it/geonetwork/srv/ita/catalog.search#/home
+  https://siat.provincia.tn.it/geonetwork/srv/ita/catalog.search#/metadata/p_TN:df06e63c-d0f3-46c9-8ec2-c25a22c50ef7
   ```
-  search for data 'PTA River Water Bodies 2022' and download.
-  Direct link: https://siat.provincia.tn.it/geonetwork/srv/ita/catalog.search#/metadata/p_TN:df06e63c-d0f3-46c9-8ec2-c25a22c50ef7
-- Download Slope data
-  Navigate to the page
-  ```
-  https://siat.provincia.tn.it/geonetwork/srv/ita/catalog.search#/home
-  ```
-  search for data 'PTA River Water Bodies 2022' and download.
-  Direct link: https://siat.provincia.tn.it/geonetwork/srv/ita/catalog.search#/metadata/p_TN:df06e63c-d0f3-46c9-8ec2-c25a22c50ef7
+
+- Slope data
 
 ## Usage
 
