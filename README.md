@@ -8,7 +8,7 @@ This project implements a pipeline for flood analysis using Sentinel imagery. It
 - `ai`: remote sensing
 - `domain`: PA
 
-The context in which this project was developed: This project focuses on leveraging satellite imagery to detect flooded areas. The project pipeline downloads the indices of area of interest (Trentino) from the sentinel download tool. The software process each downloaded tile separately, clip them using python procedure to convert the downloaded data to input files and then process the clipped tiles for the deforestation.
+The context in which this project was developed: This project focuses on leveraging satellite imagery to detect flooded areas. The project pipeline downloads the indices of area of interest (Trentino) from the sentinel download tool. The software process each downloaded tile separately, clip them using python procedure to convert the downloaded data to input files and then process the clipped tiles for the flood analysis.
 
 The product contains operations for
 

@@ -112,7 +112,7 @@ operations:
           description: The downloaded Sentinel-2 images (+20 days from flood).
 
   - id: elaborate_images_s2
-    name: Elaborate the deforestation data
+    name: Elaborate the flood data
     kind: job
     task: elaborate
     implementation:

@@ -6,7 +6,7 @@
 function_rs = proj.new_function(
     "elaborate",
     kind="container",
-    image="ghcr.io/tn-aixpa/rs-deforestation:2.6_b8",
+    image="ghcr.io/tn-aixpa/rs-flood-mapping:2.6_b8",
     command="/bin/bash",
     code_src="launch.sh"
     )
@@ -16,7 +16,7 @@ The function represent a container runtime that allows you to deploy deployments
 
 ## 2. Run
 
-The function aims at downloading all the deforestation inputs from project context and perform the complex task of deforesation elaboration.
+The function aims at downloading all the flood inputs from project context and perform the complex task of deforesation elaboration.
 
 ```python
 run_el = function_rs.run(
@@ -25,7 +25,7 @@ run_el = function_rs.run(
     resources={"cpu": {"requests": "6", "limits": "12"},"mem":{"requests": "32Gi", "limits": "64Gi"}},
     volumes=[{
         "volume_type": "persistent_volume_claim",
-        "name": "volume-deforestation",
+        "name": "volume-flood-mapping",
         "mount_path": "/app/files",
         "spec": { "size": "250Gi" }
     }],
