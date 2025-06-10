@@ -6,28 +6,42 @@ To prepare the deforestation data, it is required to log the data in the project
 
 ```python
 import digitalhub as dh
-PROJECT_NAME = "deforlood-detection" # here goes the project name that you are creating on the platform
+PROJECT_NAME = "flood-detection" # here goes the project name that you are creating on the platform
 proj = dh.get_or_create_project(PROJECT_NAME)
 ```
 
-## 2. Log the Shape artifact
+## 2. Log the Shape files artifact
+
+The pipeline requires shape files input of river, lakes, and slope.
 
 Log the shape file 'bosco' which can be downloaded from the [WebGIS Portal](https://webgis.provincia.tn.it/) confine del bosco layer or from https://siatservices.provincia.tn.it/idt/vector/p_TN_3d0874bc-7b9e-4c95-b885-0f7c610b08fa.zip. Unzip the files in a folder named 'bosco' and then log it
 
 ```python
-artifact_name='bosco'
-src_path='bosco'
+artifact_name='Lakes_TN'
+src_path='Lakes_TN'
+artifact_bosco = proj.log_artifact(name=artifact_name, kind="artifact", source=src_path)
+```
+
+```python
+artifact_name='Rivers_TN'
+src_path='Rivers_TN'
+artifact_bosco = proj.log_artifact(name=artifact_name, kind="artifact", source=src_path)
+```
+
+```python
+artifact_name='Slopes_TN'
+src_path='Slopes_TN'
 artifact_bosco = proj.log_artifact(name=artifact_name, kind="artifact", source=src_path)
 ```
 
 Note that to invoke the operation on the platform, the data should be avaialble as an artifact on the platform datalake.
 
 ```python
-artifact = proj.get_artifact("bosco")
+artifact = proj.get_artifact("Rivers_TN")
 artifact.key
 ```
 
-The resulting dataset will be registered as the project artifact in the datalake under the name `bosco`.
+The resulting datasets will be registered as the project artifact in the datalake under the given names ('Rivers_TN', 'Slopes_TN', 'Lakes_TN').
 
 ## 3. Download Sentinel Data.
 
@@ -45,49 +59,86 @@ secret0 = proj.new_secret(name="CDSETOOL_ESA_USER", secret_value="esa_username")
 secret1 = proj.new_secret(name="CDSETOOL_ESA_PASSWORD", secret_value="esa_password")
 ```
 
+### Post flood Sentinel2 data +20days
+
+Register 'download_images_s2' operation in the project. The function if of kind container runtime that allows you to deploy deployments, jobs and services on Kubernetes. It uses the base image of sentinel-tools deploved in the context of project which is a wrapper for the Sentinel download and preprocessing routine for the integration with the AIxPA platform. For more details [Click here](https://github.com/tn-aixpa/sentinel-tools/). The parameters passed for sentinel downloads includes the starts and ends dates corresponding to period of two years of data. The ouput of this step will be logged inside to the platfrom project context as indicated by parameter 'artifact_name' ('data_s2_deforestation').Several other paramters can be configures as per requirements for e.g. geometry, cloud cover percentage etc.
+
+```python
+function_s2 = proj.new_function("download_images_s2",kind="container",image="ghcr.io/tn-aixpa/sentinel-tools:0.11.1_dev",command="python")
+```
+
 ```python
 string_dict_data = """{
  "satelliteParams":{
-     "satelliteType": "Sentinel2"
+    "satelliteType": "Sentinel2",
+    "processingLevel": "S2MSI2A",
+	"bandmath": ["NDWI"]
  },
- "startDate": "2018-01-01",
- "endDate": "2019-12-31",
- "geometry": "POLYGON((10.98014831542969 45.455314263477874,11.030273437500002 45.44808893044964,10.99937438964844 45.42014226680115,10.953025817871096 45.435803739956725,10.98014831542969 45.455314263477874))",
- "area_sampling": "true",
+ "startDate": "2020-10-02",
+ "endDate": "2020-10-22",
+ "geometry": "POLYGON ((10.644988646837982 45.85539621678084, 10.644988646837982 46.06780100571985, 10.991744628283294 46.06780100571985, 10.991744628283294 45.85539621678084, 10.644988646837982 45.85539621678084))",
  "cloudCover": "[0,20]",
- "artifact_name": "data_s2_deforestation"
+ "area_sampling": "True",
+ "artifact_name": "sentinel2_post_flood",
+ "preprocess_data_only": "false"
  }"""
 
 list_args =  ["main.py",string_dict_data]
 ```
 
-Register 'download_images_s2' operation in the project. The function if of kind container runtime that allows you to deploy deployments, jobs and services on Kubernetes. It uses the base image of sentinel-tools deploved in the context of project which is a wrapper for the Sentinel download and preprocessing routine for the integration with the AIxPA platform. For more details [Click here](https://github.com/tn-aixpa/sentinel-tools/). The parameters passed for sentinel downloads includes the starts and ends dates corresponding to period of two years of data. The ouput of this step will be logged inside to the platfrom project context as indicated by parameter 'artifact_name' ('data_s2_deforestation').Several other paramters can be configures as per requirements for e.g. geometry, cloud cover percentage etc.
+Run the function. As a result the post flood sentinel-2 data is logged as project artifact('sentinel2_post_flood')
 
 ```python
-function_s2 = proj.new_function(
-    "download_images_s2",
-    kind="container",
-    image="ghcr.io/tn-aixpa/sentinel-tools:0.11.1_dev",
-    command="python")
+run = function_s2.run(action="job",
+        secrets=["CDSETOOL_ESA_USER","CDSETOOL_ESA_PASSWORD"],
+        fs_group='8877',
+        args=list_args,
+        resources={"mem":{"requests": "32Gi", "limits": "64Gi"}},
+        volumes=[{
+            "volume_type": "persistent_volume_claim",
+            "name": "volume-flood",
+            "mount_path": "/app/files",
+            "spec": {
+                "size": "100Gi"
+            }}])
 ```
 
-### Run the function
+### Pre flood Sentinel2 data -20 days
 
 ```python
-run = function_s2.run(
-    action="job",
-    secrets=["CDSETOOL_ESA_USER","CDSETOOL_ESA_PASSWORD"],
-    fs_group='8877',
-    args=["main.py", string_dict_data],
-    resources={"cpu": {"requests": "3", "limits": "6"},"mem":{"requests": "32Gi", "limits": "64Gi"}},
-    volumes=[{
-        "volume_type": "persistent_volume_claim",
-        "name": "volume-deforestation",
-        "mount_path": "/app/files",
-        "spec": {
-             "size": "350Gi"
-        }
-    }])
+string_dict_data = """{
+     "satelliteParams":{
+        "satelliteType": "Sentinel2",
+        "processingLevel": "S2MSI2A",
+    	"bandmath": ["NDWI"]
+     },
+     "startDate": "2020-09-12",
+     "endDate": "2020-10-02",
+     "geometry": "POLYGON ((10.644988646837982 45.85539621678084, 10.644988646837982 46.06780100571985, 10.991744628283294 46.06780100571985, 10.991744628283294 45.85539621678084, 10.644988646837982 45.85539621678084))",
+     "cloudCover": "[0,20]",
+     "area_sampling": "True",
+     "artifact_name": "sentinel2_pre_flood",
+     "preprocess_data_only": "false"
+     }"""
+
+list_args =  ["main.py",string_dict_data]
+```
+
+Run the function again. As a result the pre flood sentinel-2 data is logged as project artifact('sentinel2_post_flood')
+
+```python
+run = function_s2.run(action="job",
+        secrets=["CDSETOOL_ESA_USER","CDSETOOL_ESA_PASSWORD"],
+        fs_group='8877',
+        args=list_args,
+        resources={"mem":{"requests": "32Gi", "limits": "64Gi"}},
+        volumes=[{
+            "volume_type": "persistent_volume_claim",
+            "name": "volume-flood",
+            "mount_path": "/app/files",
+            "spec": {
+                "size": "100Gi"
+            }}])
 ```
 
 Check the status of function.
