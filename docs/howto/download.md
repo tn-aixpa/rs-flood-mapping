@@ -14,7 +14,7 @@ proj = dh.get_or_create_project(PROJECT_NAME)
 
 The pipeline requires shape files input of river, lakes, and slope.
 
-Log the river shape file. Download the zip file from the [WebGIS Portal](https://webgis.provincia.tn.it/) and extract the contents inside a folder 'Rivers_TN' and log it as project artifact
+Log the river shape file. Download the zip file from the [SIAT Portal](https://siat.provincia.tn.it/geonetwork/srv/ita/catalog.search#/metadata/p_TN:df06e63c-d0f3-46c9-8ec2-c25a22c50ef7) and extract the contents inside a folder 'Rivers_TN' and log it as project artifact
 
 ```python
 artifact_name='Rivers_TN'
@@ -22,7 +22,7 @@ src_path='Rivers_TN'
 artifact_bosco = proj.log_artifact(name=artifact_name, kind="artifact", source=src_path)
 ```
 
-Log the lakes shape file. Download the zip file from the [WebGIS Portal](https://webgis.provincia.tn.it/) and extract the contents inside a folder 'Lakes_TN' and log it as project artifact
+Log the lakes shape file. Download the zip file from the [SIAT Portal](https://siat.provincia.tn.it/geonetwork/srv/ita/catalog.search#/metadata/p_TN:0f1fdc33-5c71-4c6d-81e7-25eb2ab0e599) and extract the contents inside a folder 'Lakes_TN' and log it as project artifact
 
 ```python
 artifact_name='Lakes_TN'
@@ -30,7 +30,7 @@ src_path='Lakes_TN'
 artifact_bosco = proj.log_artifact(name=artifact_name, kind="artifact", source=src_path)
 ```
 
-Log the slope shape file. Download the zip file from the [WebGIS Portal](https://webgis.provincia.tn.it/) and extract the contents inside a folder 'Slopes_TN' and log it as project artifact
+Log the slope shape file. Download the zip file from the [SIAT Portal](https://webgis.provincia.tn.it/) and extract the contents inside a folder 'Slopes_TN' and log it as project artifact
 
 ```python
 artifact_name='Slopes_TN'
