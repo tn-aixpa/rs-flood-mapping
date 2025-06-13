@@ -395,40 +395,6 @@ def run_from_temp():
     detect_change(pre_path, post_path, s1_tiff)
     print("[INFO] Final flood map ready at:", s1_tiff)
 
-
-def run_from_temp():
-    pre_proc = []
-    post_proc = []
-
-    for tif in sorted(glob(os.path.join(temp_folder, "*_preprocessed.tif"))):
-        date = extract_date_from_filename(os.path.basename(tif))
-        if not date:
-            continue
-        if date < flood_date:
-            pre_proc.append(tif)
-        else:
-            post_proc.append(tif)
-
-    if not pre_proc or not post_proc:
-        print("[ERROR] Not enough pre/post TIFFs found in temp folder.")
-        return
-
-    pre_mosaic, _ = merge([rasterio.open(f) for f in pre_proc])
-    post_mosaic, trans = merge([rasterio.open(f) for f in post_proc])
-    profile = rasterio.open(post_proc[0]).profile
-    profile.update({"height": post_mosaic.shape[1], "width": post_mosaic.shape[2], "transform": trans})
-
-    pre_path = os.path.join(temp_folder, "pre_merged.tif")
-    post_path = os.path.join(temp_folder, "post_merged.tif")
-    with rasterio.open(pre_path, "w", **profile) as dst:
-        dst.write(pre_mosaic)
-    with rasterio.open(post_path, "w", **profile) as dst:
-        dst.write(post_mosaic)
-
-    detect_change(pre_path, post_path, s1_tiff)
-    print("[INFO] Final flood map ready at:", s1_tiff)
-
-
 ################################## updated ##########################################
 def combine_s1_s2(s1_tiff, s2_tiff, combined_tiff, combined_shp):
 
