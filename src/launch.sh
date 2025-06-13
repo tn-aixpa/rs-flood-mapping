@@ -4,12 +4,10 @@ cd ~
 pwd
 source .bashrc
 export PATH="/home/nonroot/miniforge3/snap/bin:$PATH"
-echo "GDAL DATA:"
-echo $GDAL_DATA
-echo "PROJ_LIB"
-echo $PROJ_LIB
 export PROJ_LIB=/home/nonroot/miniforge3/share/proj
 export GDAL_DATA=/home/nonroot/miniforge3/share/gdal
+export GDAL_DRIVER_PATH=/home/nonroot/miniforge3/lib/gdalplugins
+export PROJ_DATA=/home/nonroot/miniforge3/share/proj
 gdal-config --version
 python --version
 echo "GDAL DATA AFTER EXPORT:"
