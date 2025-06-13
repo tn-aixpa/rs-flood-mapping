@@ -1,4 +1,3 @@
-
 import os
 import sys
 import json
@@ -7,8 +6,11 @@ import json
 from datetime import datetime
 from pathlib import Path
 import numpy as np
+from rasterio.crs import CRS
+from scipy.ndimage import binary_opening, binary_closing
 import rasterio
 from rasterio.mask import mask
+from skimage.morphology import remove_small_objects
 from rasterio.warp import reproject, Resampling, calculate_default_transform
 from rasterio.features import shapes
 import geopandas as gpd
@@ -28,7 +30,12 @@ import shutil
 import pyproj
 from shapely.ops import transform
 from shapely.geometry import mapping
-from skimage.morphology import remove_small_objects
+from osgeo import gdal
+import geopandas as gpd
+from shapely import wkt
+from osgeo import gdal 
+gdal.UseExceptions()
+
 
 import digitalhub as dh
 
@@ -59,8 +66,7 @@ def load_rivers():
     rivers_buffered = rivers.buffer(river_buffer_meters)
     return gpd.GeoDataFrame(geometry=rivers_buffered, crs=target_crs)
 
-######### s2 processing ####################
-
+######### updated s2 processing ####################
 def run_s2():
 
     geometry = wkt.loads(geo_wkt)
@@ -164,11 +170,10 @@ def run_s2():
 
     output_tiff_path = os.path.join(output_folder, "S2-flood_layer.tif")
     save_flood_mask_tiff(flood_pixels, pre_transform, pre_crs, output_tiff_path)
-    print(f"Sentinel-2 flood detection completed. Output saved to: {output_tiff_path}")
 
-########################FILE 2#########################################33
+
+########################FILE 2#########################################
 # S1 - Processing
-
 
 def extract_date_from_filename(filename):
     try:
@@ -216,7 +221,8 @@ def preprocess(zip_path, geo_wkt):
         return out_file if os.path.exists(out_file) else None
     except:
         return None
-
+    
+####### updated version 4  ####################
 def detect_change(pre_path, post_path, output_path):
     with rasterio.open(pre_path) as pre, rasterio.open(post_path) as post:
         profile = post.profile
@@ -229,31 +235,76 @@ def detect_change(pre_path, post_path, output_path):
 
         # Change detection using log-ratio
         log_ratio = 10 * np.log10(post_band / pre_band)
-        flood_mask = (log_ratio < -4.5)
-        flood_mask = remove_small_objects(flood_mask, min_size=100)
-       
+        flood_mask = (log_ratio < -5)
+        flood_mask = remove_small_objects(flood_mask, min_size=200)
 
         flood_mask = flood_mask.astype(np.uint8)
 
-        # Optional: slope masking
+        # --- slopemap in datalake: slope masking ---
         try:
+            # Step 1: Clip slope map to AOI
+            aoi_geom = wkt.loads(geo_wkt)  # geometry is already defined globally
+            print(f"[INFO] AOI geometry: {aoi_geom}")
+            aoi_gdf = gpd.GeoDataFrame(geometry=[aoi_geom], crs="EPSG:4326")
+
+            # Read slope CRS
             with rasterio.open(slope_map_path) as slope_src:
-                slope_data = slope_src.read(1).astype(np.float32)
-                reprojected = np.empty_like(flood_mask, dtype=np.float32)
-                reproject(
-                    source=slope_data,
-                    destination=reprojected,
-                    src_transform=slope_src.transform,
-                    src_crs=slope_src.crs,
-                    dst_transform=profile["transform"],
-                    dst_crs=profile["crs"],
-                    resampling=Resampling.bilinear
-                )
-                flood_mask[reprojected > slope_threshold] = 0
-                print("Slope masking applied.")
+                slope_crs = slope_src.crs
+
+            # Reproject AOI to slope CRS
+            if aoi_gdf.crs != slope_crs:
+                aoi_gdf = aoi_gdf.to_crs(slope_crs)
+
+            bounds = aoi_gdf.total_bounds  # xmin, ymin, xmax, ymax
+
+            # Prepare GDAL Translate window
+            window = [bounds[0], bounds[3], bounds[2], bounds[1]]  # xmin, ymax, xmax, ymin
+
+            print(f"[INFO] Clipping slope map to AOI bounds: {window}")
+
+            clipped_slope_path = os.path.join(temp_folder, "slope_clipped.tif")
+
+            translate_options = gdal.TranslateOptions(
+                format="GTiff",
+                projWin=window,
+                projWinSRS=slope_crs.to_string(),
+                outputSRS=slope_crs.to_string()
+            )
+
+            print(f"[INFO] Clipping slope map: {slope_map_path} to {clipped_slope_path}")
+            ds_slope = gdal.Translate(clipped_slope_path, slope_map_path, options=translate_options)
+
+            if ds_slope is None:
+                raise ValueError("Slope clipping failed, GDAL returned None.")
+
+            # Step 2: Align slope map to flood raster
+            aligned_slope_path = os.path.join(temp_folder, "slope_aligned.tif")
+
+            warp_options = gdal.WarpOptions(
+                format="GTiff",
+                xRes=10,   # 10m resolution downscale from 1m
+                yRes=10,   # 10m resolution downscale from 1m
+                dstSRS=profile["crs"].to_string(),
+                outputBounds=rasterio.transform.array_bounds(profile["height"], profile["width"], profile["transform"]),
+                resampleAlg="average"  # or "bilinear" (average is good for slope)
+            )
+
+            ds_warp = gdal.Warp(aligned_slope_path, clipped_slope_path, options=warp_options)
+
+            if ds_warp is None:
+                raise ValueError("Slope alignment failed, GDAL Warp returned None.")
+
+            slope_map = ds_warp.ReadAsArray()
+            ds_warp = None
+
+            # Apply slope masking
+            flood_mask[slope_map > slope_threshold] = 0
+            print("Slope masking applied.")
+
         except Exception as e:
             print("Slope masking skipped. Reason:", e)
 
+        # Save flood mask
         profile.update(dtype=rasterio.uint8, count=1)
         with rasterio.open(output_path, 'w', **profile) as dst:
             dst.write(flood_mask, 1)
@@ -345,52 +396,88 @@ def run_from_temp():
     print("[INFO] Final flood map ready at:", s1_tiff)
 
 
-################################## FILE 3 ##########################################
+def run_from_temp():
+    pre_proc = []
+    post_proc = []
 
+    for tif in sorted(glob(os.path.join(temp_folder, "*_preprocessed.tif"))):
+        date = extract_date_from_filename(os.path.basename(tif))
+        if not date:
+            continue
+        if date < flood_date:
+            pre_proc.append(tif)
+        else:
+            post_proc.append(tif)
+
+    if not pre_proc or not post_proc:
+        print("[ERROR] Not enough pre/post TIFFs found in temp folder.")
+        return
+
+    pre_mosaic, _ = merge([rasterio.open(f) for f in pre_proc])
+    post_mosaic, trans = merge([rasterio.open(f) for f in post_proc])
+    profile = rasterio.open(post_proc[0]).profile
+    profile.update({"height": post_mosaic.shape[1], "width": post_mosaic.shape[2], "transform": trans})
+
+    pre_path = os.path.join(temp_folder, "pre_merged.tif")
+    post_path = os.path.join(temp_folder, "post_merged.tif")
+    with rasterio.open(pre_path, "w", **profile) as dst:
+        dst.write(pre_mosaic)
+    with rasterio.open(post_path, "w", **profile) as dst:
+        dst.write(post_mosaic)
+
+    detect_change(pre_path, post_path, s1_tiff)
+    print("[INFO] Final flood map ready at:", s1_tiff)
+
+
+################################## updated ##########################################
 def combine_s1_s2(s1_tiff, s2_tiff, combined_tiff, combined_shp):
 
     print("Combining Sentinel-1 and Sentinel-2 masks...")
+
     try:
-        with rasterio.open(s1_tiff) as s1, rasterio.open(s2_tiff) as s2:
+        # Always open S1 first
+        with rasterio.open(s1_tiff) as s1:
             s1_data = s1.read(1)
-            s2_data = s2.read(1)  
             s1_nodata = s1.nodata if s1.nodata is not None else 0
             s1_valid = s1_data != s1_nodata
             s1_flood = s1_data > 0
 
-
-            s2_aligned = np.zeros(s1_data.shape, dtype=np.uint8)
-            reproject(
-                source=s2_data,
-                destination=s2_aligned,
-                src_transform=s2.transform,
-                src_crs=s2.crs,
-                dst_transform=s1.transform,
-                dst_crs=s1.crs,
-                resampling=Resampling.nearest,
-                src_nodata=s2.nodata or 0,
-                dst_nodata=0
-            )
-
-
-            s2_nodata = s2.nodata if s2.nodata is not None else 0
-            s2_valid = s2_aligned != s2_nodata
-            s2_flood = s2_aligned == 1
-
-
+            # Initialize combined with S1 flood mask as default
             combined = np.zeros_like(s1_data, dtype=np.uint8)
-        # Detect flood pixels
             s1_flood_mask = s1_valid & s1_flood
-            s2_flood_mask = s2_valid & s2_flood
+            combined[s1_flood_mask] = 255
 
-        # Combine flood detections
-            combined = np.zeros_like(s1_data, dtype=np.uint8)
-            combined[s1_flood_mask | s2_flood_mask] = 255
+            # If S2 is available → open and combine
+            if os.path.exists(s2_tiff):
+                print("Sentinel-2 mask found → combining with Sentinel-1")
+                with rasterio.open(s2_tiff) as s2:
+                    s2_data = s2.read(1)
 
-        # Mask where both have no valid data
-            combined[~(s1_valid | s2_valid)] = 0
+                    s2_aligned = np.zeros(s1_data.shape, dtype=np.uint8)
+                    reproject(
+                        source=s2_data,
+                        destination=s2_aligned,
+                        src_transform=s2.transform,
+                        src_crs=s2.crs,
+                        dst_transform=s1.transform,
+                        dst_crs=s1.crs,
+                        resampling=Resampling.nearest,
+                        src_nodata=s2.nodata or 0,
+                        dst_nodata=0
+                    )
 
+                    s2_nodata = s2.nodata if s2.nodata is not None else 0
+                    s2_valid = s2_aligned != s2_nodata
+                    s2_flood = s2_aligned == 1
+                    s2_flood_mask = s2_valid & s2_flood
 
+                    # Combine both masks
+                    combined[s2_flood_mask] = 255
+
+            else:
+                print("Sentinel-2 mask NOT found → using Sentinel-1 only")
+
+            # Reproject to target CRS
             transform, width, height = calculate_default_transform(
                 s1.crs, target_crs, s1.width, s1.height, *s1.bounds
             )
@@ -402,10 +489,11 @@ def combine_s1_s2(s1_tiff, s2_tiff, combined_tiff, combined_shp):
                 src_transform=s1.transform,
                 src_crs=s1.crs,
                 dst_transform=transform,
-                dst_crs= target_crs,
+                dst_crs=target_crs,
                 resampling=Resampling.nearest
             )
-        
+
+            # Apply AOI + Lakes + Rivers masks
             aoi = load_aoi()
             lakes = load_lakes()
             rivers = load_rivers()
@@ -414,11 +502,13 @@ def combine_s1_s2(s1_tiff, s2_tiff, combined_tiff, combined_shp):
             if rivers is not None:
                 aoi = gpd.overlay(aoi, rivers, how='difference')
 
+            # Save unclipped first
             with rasterio.open("/tmp/combined_unclipped.tif", "w", driver="GTiff",
                                height=height, width=width, count=1, dtype="uint8",
-                               crs= target_crs, transform=transform, nodata=0) as tmp:
+                               crs=target_crs, transform=transform, nodata=0) as tmp:
                 tmp.write(combined_reprojected, 1)
 
+            # Apply AOI mask (clipping)
             with rasterio.open("/tmp/combined_unclipped.tif") as tmp_src:
                 clipped, out_transform = mask(tmp_src, aoi.geometry, crop=True, nodata=0)
                 final_meta = tmp_src.meta.copy()
@@ -428,15 +518,24 @@ def combine_s1_s2(s1_tiff, s2_tiff, combined_tiff, combined_shp):
                     "transform": out_transform
                 })
 
+            # Remove small objects + Morph smoothing
             labeled, num_features = label(clipped[0] == 255)
             sizes = np.bincount(labeled.ravel())
             small_mask = np.isin(labeled, np.where(sizes < noise_min_pixels)[0])
             cleaned = clipped[0].copy()
             cleaned[small_mask] = 0
 
+            # Morph smoothing
+            cleaned = binary_closing(
+                binary_opening(cleaned > 0, structure=np.ones((2, 2))),
+                structure=np.ones((2, 2))
+            ).astype(np.uint8) * 255
+
+            # Save final cleaned TIFF
             with rasterio.open(combined_tiff, "w", **final_meta) as dst:
                 dst.write(cleaned, 1)
 
+            # Save shapefile
             results = shapes(cleaned, mask=cleaned == 255, transform=out_transform)
             geoms = [shape(g) for g, _ in results]
             if geoms:
@@ -449,7 +548,7 @@ def combine_s1_s2(s1_tiff, s2_tiff, combined_tiff, combined_shp):
     except Exception as e:
         print(f"Fusion failed: {e}")
         raise
-###################################################################
+#########################################
 def write_metadata():
     try:
         metadata = {
@@ -502,13 +601,7 @@ def run_pipeline():
     print("Pipeline complete.")
     
 
-def reproject_geometry(geom, src_crs, dst_crs):
-    if src_crs != dst_crs:
-        project = pyproj.Transformer.from_crs(src_crs, dst_crs, always_xy=True).transform
-        return transform(project, geom)
-    return geom
-
-## python main.py "{'s1PreFlood':'sentinel1_GRD_preflood','s1PostFlood':'sentinel1_GRD_postflood','s2PreFlood':'sentinel2_pre_flood','s2PostFlood':'sentinel2_post_flood','geomWKT':'POLYGON ((10.644988646837982 45.85539621678084, 10.644988646837982 46.06780100571985, 10.991744628283294 46.06780100571985, 10.991744628283294 45.85539621678084, 10.644988646837982 45.85539621678084))','slopeArtifact':'Slopes_TN','slopeFileName':'slope_map25832.tif','lakeShapeArtifactName':'Lakes_TN','lakeShapeFileName':'idrspacq.shp','riverShapeArtifactName':'Rivers_TN','riverShapeFileName':'cif_pta2022_v.shp','output':'test_nk','eventDate':'2020-10-02','targetCRS':'EPSG:25832','polarization':'VH','dem_threshold':700,'slope_threshold':7,'noise_min_pixels':15,'river_buffer_meters':2}"
+## python main.py "{'s1PreFlood':'sentinel1_GRD_preflood','s1PostFlood':'sentinel1_GRD_postflood','s2PreFlood':'sentinel2_pre_flood','s2PostFlood':'sentinel2_post_flood','geomWKT':'POLYGON ((10.644988646837982 45.85539621678084, 10.644988646837982 46.06780100571985, 10.991744628283294 46.06780100571985, 10.991744628283294 45.85539621678084, 10.644988646837982 45.85539621678084))','slopeArtifact':'Slopes_TN','slopeFileName':'slope_map25832.tif','lakeShapeArtifactName':'Lakes_TN','lakeShapeFileName':'idrspacq.shp','riverShapeArtifactName':'Rivers_TN','riverShapeFileName':'cif_pta2022_v.shp','output':'test_nk','eventDate':'2020-10-02','targetCRS':'EPSG:25832','polarization':['VV','VH'],'dem_threshold':700,'slope_threshold':7,'noise_min_pixels':15,'river_buffer_meters':2}"
 
 if __name__ == "__main__":
 
@@ -534,11 +627,11 @@ if __name__ == "__main__":
     floodDate = json_input['eventDate'] # flood date
     geo_wkt = json_input['geomWKT'] # AOI geometry in WKT format
     target_crs = json_input['targetCRS'] # "EPSG:25832"
-    polarization = json_input['polarization'] # polarization (VV or VH)
-    dem_threshold = json_input['dem_threshold'] # dem_threshold (200-700)
-    slope_threshold = json_input['slope_threshold'] # slope_threshold (5- 15)
-    noise_min_pixels = json_input['noise_min_pixels'] # noise_min_pixels 5
-    river_buffer_meters = json_input['river_buffer_meters'] # river_buffer_meters 2
+    polarization = json_input['polarization'] # polarization (VV or VH) for both ["VV", "VH"]
+    dem_threshold = json_input['dem_threshold'] # dem_threshold (500-1000)
+    slope_threshold = json_input['slope_threshold'] # slope_threshold (7- 15)
+    noise_min_pixels = json_input['noise_min_pixels'] # noise_min_pixels more than 10
+    river_buffer_meters = json_input['river_buffer_meters'] # river_buffer_meters 1-2
     
     BASE_DIR = '.'
     # Input folders

@@ -6,7 +6,7 @@
 function_rs = proj.new_function(
     "elaborate",
     kind="container",
-    image="ghcr.io/tn-aixpa/rs-flood-mapping:2.6.0_b7",
+    image="ghcr.io/tn-aixpa/rs-flood-mapping:2.6.0_b8",
     code_src="launch.sh")
 ```
 
@@ -26,7 +26,7 @@ run_el = function_rs.run(action="job",
             "spec": {
                 "size": "125Gi"
             }}],
-            args=['/shared/launch.sh', 'sentinel1_GRD_preflood', 'sentinel1_GRD_postflood', 'sentinel2_pre_flood', 'sentinel2_post_flood', 'POLYGON ((10.644988646837982 45.85539621678084, 10.644988646837982 46.06780100571985, 10.991744628283294 46.06780100571985, 10.991744628283294 45.85539621678084, 10.644988646837982 45.85539621678084))', 'Slopes_TN', 'slope_map25832.tif', 'Lakes_TN', 'idrspacq.shp', 'Rivers_TN', 'cif_pta2022_v.shp', 'output_flood_mask', '2020-10-02', 'EPSG:25832', 'VH', '700', '7', '15', '2']
+            args=['/shared/launch.sh', 'sentinel1_GRD_preflood', 'sentinel1_GRD_postflood', 'sentinel2_pre_flood', 'sentinel2_post_flood', 'POLYGON ((10.644988646837982 45.85539621678084, 10.644988646837982 46.06780100571985, 10.991744628283294 46.06780100571985, 10.991744628283294 45.85539621678084, 10.644988646837982 45.85539621678084))', 'Slopes_TN', 'slope_map25832.tif', 'Lakes_TN', 'idrspacq.shp', 'Rivers_TN', 'cif_pta2022_v.shp', 'output_flood_mask', '2020-10-02', 'EPSG:25832', ['VV','VH'], '700', '7', '15', '2']
          )
 )
 ```
