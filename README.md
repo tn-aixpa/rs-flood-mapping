@@ -24,7 +24,7 @@ The product contains operations for
 
 ### Hardware Requirements
 
-The pipelines takes around 7-8 hours to complete with 16 CPUs and 64GB Ram for processing data window around flood event date (±20 days sentinel-2 data and ± 7days Sentinel1 data)which is the default period. It consists of interpolation and post processing steps which are computationally heavy since it is pixel based analysis. The amount of sentinal data is huge that is whay a volume of 100Gi of type 'persistent_volume_claim' is specified to ensure significant data space.
+The pipelines can take several hours to complete with 16 CPUs and 64GB Ram for processing data window around flood event date (±20 days sentinel-2 data and ± 7days Sentinel1 data)which is the default period. It consists of two steps (download, elaboration). The download step is dependant on Sentinel Hub dataspace. It could happen that data download takes more time than usual due to various factors, including technical issues, data processing delays, and limitations in the data access infrastructure. The second step 'elaboration' consists of interpolation and post processing steps which are computationally heavy since it is pixel based analysis. The amount of sentinal data is huge that is whay a volume of 100Gi of type 'persistent_volume_claim' is specified to ensure significant data space.
 
 ### General Requirements.
 
