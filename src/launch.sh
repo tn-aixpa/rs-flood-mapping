@@ -4,7 +4,7 @@ cd ~
 pwd
 source .bashrc
 export PATH="/home/nonroot/miniforge3/snap/bin:$PATH"
-export PATH="/home/nonroot/miniforge3/snap/.snap/auxdata/gdal/gdal-3-0-0/bin/:$PATH"
+#export PATH="/home/nonroot/miniforge3/snap/.snap/auxdata/gdal/gdal-3-0-0/bin/:$PATH"
 gdal-config --version
 python --version
 echo "Running flood mapping script with parameters:"
