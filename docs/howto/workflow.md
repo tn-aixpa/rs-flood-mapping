@@ -39,9 +39,10 @@ artifact_name='Slopes_TN'
 src_path='Slopes_TN'
 artifact_bosco = proj.log_artifact(name=artifact_name, kind="artifact", source=src_path)
 ```
+
 The resulting datasets will be registered as the project artifact in the datalake under the given names ('Rivers_TN', 'Slopes_TN', 'Lakes_TN').
 
-## 3. Register 'Download' operation in the project
+## 3. Register 'Download' operations for sentinel1 and Sentine2 data
 
 Register to the open data space copernicus(if not already) and get your credentials.
 
@@ -57,7 +58,7 @@ secret0 = proj.new_secret(name="CDSETOOL_ESA_USER", secret_value="esa_username")
 secret1 = proj.new_secret(name="CDSETOOL_ESA_PASSWORD", secret_value="esa_password")
 ```
 
-Register 'download_images_s2' operation in the project. The function if of kind container runtime that allows you to deploy deployments, jobs and services on Kubernetes. It uses the base image of sentinel-tools deploved in the context of project which is a wrapper for the Sentinel download and preprocessing routine for the integration with the AIxPA platform. For more details [Click here](https://github.com/tn-aixpa/sentinel-tools/).
+Register 'download_images_s2' operation in the project. The function is of kind container runtime that allows you to deploy deployments, jobs and services on Kubernetes. It uses the base image of sentinel-tools deploved in the context of project which is a wrapper for the Sentinel download and preprocessing routine for the integration with the AIxPA platform. For more details [Click here](https://github.com/tn-aixpa/sentinel-tools/). The purpose of 'download_images_s2' function is to download sentinel-2 data (GRD image tiles)
 
 ```python
 function_s2 = proj.new_function(
@@ -66,6 +67,18 @@ function_s2 = proj.new_function(
     image="ghcr.io/tn-aixpa/sentinel-tools:0.11.5",
     command="python")
 ```
+
+Register 'download_images_s1' operation in the project.
+
+```python
+function_s1 = proj.new_function(
+    "download_images_s1",
+    kind="container",
+    image="ghcr.io/tn-aixpa/sentinel-tools:0.11.5",
+    command="python")
+```
+
+The purpose of this function is to download sentinel1 data(GRD image tiles) based on input parameters for e.g. geometry, cloud cover percentage etc.
 
 ## 4. Register the `elaborate` operation in the project
 
@@ -90,6 +103,8 @@ Workflows can be created and managed as entities similar to functions. From the 
 - s1_postFloodDate (sentinel-1 data 7 days after flood event)
 - s2_preFloodDate (sentinel-2 data 20 days before flood event)
 - s2_postFloodDate (sentinel-2 data 20 days after flood event)
+
+The inputs are sub organized inside to the workflow among different functions. The first four download steps perform sentinel downloads using the function created in previous step. The download function takes as input a list of arguments (args=["main.py", string_dict_data_s1Pre]) where the first argument is the python script file that will be launched inside to the container and the second argument is the json input string which includes all the necessary parameters of sentinel download operation like date, geometry, product type, cloud cover etc. For more details [Click here](https://github.com/tn-aixpa/sentinel-tools/). The last step of workflow perform elaboration using the 'elaborate' function created in previous step. The elaboration function taks as input a list of arguments where the first argument is the bash script that will be launched on entry inside to the container while the following parameters contains both fixed and dynamic parameters. The fixed parameter includes both the project artifacts names (sentinel1_GRD_preflood, sentinel1_GRD_postflood, sentinel2_pre_flood, sentinel2_post_flood, 'Slopes_TN', 'slope_map25832.tif', 'Lakes_TN', 'idrspacq.shp', 'Rivers_TN', 'cif_pta2022_v.shp') as well as the the scenario configuration parameters like targetCRS, polarization, dem_threshold, slope_threshold, noise_min_pixels, river_buffer_meters. They set of dynamic parameters included outputName, floodDate, geometry etc. which can be passed as input to the main workflow. The workflow can be adopted as per context needs by changing/passing the different parametric values as depicted in 'Register workflow' section.
 
 ```python
 %%writefile "flood_pipeline.py"
