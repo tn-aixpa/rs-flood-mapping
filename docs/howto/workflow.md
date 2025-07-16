@@ -39,14 +39,6 @@ artifact_name='Slopes_TN'
 src_path='Slopes_TN'
 artifact_bosco = proj.log_artifact(name=artifact_name, kind="artifact", source=src_path)
 ```
-
-Note that to invoke the operation on the platform, the data should be avaialble as an artifact on the platform datalake.
-
-```python
-artifact = proj.get_artifact("Rivers_TN")
-artifact.key
-```
-
 The resulting datasets will be registered as the project artifact in the datalake under the given names ('Rivers_TN', 'Slopes_TN', 'Lakes_TN').
 
 ## 3. Register 'Download' operation in the project
