@@ -56,6 +56,7 @@ Tool usage documentation [here](./docs/usage.md).
 
 - [Download and preprocess sentinel flood data](./docs/howto/download.md)
 - [Run Flood Elaboration and log output ](./docs/howto/elaborate.md)
+- [Workflow](./docs/howto/workflow.md)
 
 ## License
 

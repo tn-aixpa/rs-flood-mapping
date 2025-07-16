@@ -1,0 +1,229 @@
+# Workflow
+
+In this step we will create a workflow pipeline that establish a clear, repeatable process for handling the set of scenario tasks (download, elaborate). The DH platform pipeline ensures that tasks are completed in a sepcific order. It also provide the ease to fine tune the steps as per requirements of scenario imporving efficiency, consistency, aand traceability. For more detailed information about workflow and their management see the [documentation](https://scc-digitalhub.github.io/docs/tasks/workflows). Inside the project 'src' folder there exist a jypter notebook [workflow.ipynb](../../src/workflow.ipynb) that depicts the creation and management of workflow.
+
+## 1. Initialize the project
+
+Create the working context: data management project for scenario. Project is a placeholder for the code, data, and management of the data operations and workflows. To keep it reproducible, we use the git source type to store the definition and code.
+
+```python
+import digitalhub as dh
+PROJECT_NAME = "flood-detection" # here goes the project name that you are creating on the platform
+proj = dh.get_or_create_project(PROJECT_NAME)
+```
+
+## 2. Log the Shape files artifact
+
+The pipeline requires shape files input of river, lakes, and slope.
+
+Log the river shape file. Download the zip file from the [SIAT Portal](https://siat.provincia.tn.it/geonetwork/srv/ita/catalog.search#/metadata/p_TN:df06e63c-d0f3-46c9-8ec2-c25a22c50ef7) and extract the contents inside a folder 'Rivers_TN' and log it as project artifact
+
+```python
+artifact_name='Rivers_TN'
+src_path='Rivers_TN'
+artifact_bosco = proj.log_artifact(name=artifact_name, kind="artifact", source=src_path)
+```
+
+Log the lakes shape file. Download the zip file from the [SIAT Portal](https://siat.provincia.tn.it/geonetwork/srv/ita/catalog.search#/metadata/p_TN:0f1fdc33-5c71-4c6d-81e7-25eb2ab0e599) and extract the contents inside a folder 'Lakes_TN' and log it as project artifact
+
+```python
+artifact_name='Lakes_TN'
+src_path='Lakes_TN'
+artifact_bosco = proj.log_artifact(name=artifact_name, kind="artifact", source=src_path)
+```
+
+Log the slope shape file. Download the zip file from the [SIAT Portal](https://webgis.provincia.tn.it/) and extract the contents inside a folder 'Slopes_TN' and log it as project artifact
+
+```python
+artifact_name='Slopes_TN'
+src_path='Slopes_TN'
+artifact_bosco = proj.log_artifact(name=artifact_name, kind="artifact", source=src_path)
+```
+
+Note that to invoke the operation on the platform, the data should be avaialble as an artifact on the platform datalake.
+
+```python
+artifact = proj.get_artifact("Rivers_TN")
+artifact.key
+```
+
+The resulting datasets will be registered as the project artifact in the datalake under the given names ('Rivers_TN', 'Slopes_TN', 'Lakes_TN').
+
+## 3. Register 'Download' operation in the project
+
+Register to the open data space copernicus(if not already) and get your credentials.
+
+```
+https://identity.dataspace.copernicus.eu/auth/realms/CDSE/login-actions/registration?client_id=cdse-public&tab_id=FIiRPJeoiX4
+```
+
+Log the credentials as project secret keys as shown below
+
+```python
+# THIS NEED TO BE EXECUTED JUST ONCE
+secret0 = proj.new_secret(name="CDSETOOL_ESA_USER", secret_value="esa_username")
+secret1 = proj.new_secret(name="CDSETOOL_ESA_PASSWORD", secret_value="esa_password")
+```
+
+Register 'download_images_s2' operation in the project. The function if of kind container runtime that allows you to deploy deployments, jobs and services on Kubernetes. It uses the base image of sentinel-tools deploved in the context of project which is a wrapper for the Sentinel download and preprocessing routine for the integration with the AIxPA platform. For more details [Click here](https://github.com/tn-aixpa/sentinel-tools/).
+
+```python
+function_s2 = proj.new_function(
+    "download_images_s2",
+    kind="container",
+    image="ghcr.io/tn-aixpa/sentinel-tools:0.11.5",
+    command="python")
+```
+
+## 4. Register the `elaborate` operation in the project
+
+```python
+function_rs = proj.new_function(
+    "elaborate",
+    kind="container",
+    image="ghcr.io/tn-aixpa/rs-flood-mapping:2.6.0_b9",
+    code_src="launch.sh")
+```
+
+The function represent a container runtime that allows you to deploy deployments, jobs and services on Kubernetes. It uses the base image of rs-flood-mapping container deploved in the context of project that creates the runtime environment required for the execution. It invovles pulling the base image with gdal installed and installing all the required libraries and launch instructions specified by 'launch.sh' file.
+
+## 5. Create workflow pipeline
+
+Workflows can be created and managed as entities similar to functions. From the console UI one can access them from the dashboard or the left menu. Run the following step to create 'workflow' python source file inside src directory. The workflow handler takes as input
+
+- geometry (area of interest)
+- outputName (output artifact name)
+- floodDate (flood event date)
+- s1_preFloodDate (sentinel-1 data 7 days before flood event)
+- s1_postFloodDate (sentinel-1 data 7 days after flood event)
+- s2_preFloodDate (sentinel-2 data 20 days before flood event)
+- s2_postFloodDate (sentinel-2 data 20 days after flood event)
+
+```python
+%%writefile "flood_pipeline.py"
+
+from digitalhub_runtime_kfp.dsl import pipeline_context
+import datetime
+
+def myhandler(geometry, outputName, floodDate, s1_preFloodDate, s1_postFloodDate, s2_preFloodDate, s2_postFloodDate):
+
+    string_dict_data_s1Pre =  """{"satelliteParams": {"satelliteType": "Sentinel1","processingLevel": "LEVEL1","sensorMode": "IW","productType": "GRD"},"startDate":\"""" + str(s1_preFloodDate) + """\","endDate": \"""" + str(floodDate) + """\","geometry": \"""" + str(geometry) + """\","area_sampling": "True","tmp_path_same_folder_dwl":"True","artifact_name": "sentinel1_GRD_preflood"}"""
+    string_dict_data_s1Post = """{"satelliteParams": {"satelliteType": "Sentinel1","processingLevel": "LEVEL1","sensorMode": "IW","productType": "GRD"},"startDate":\"""" + str(floodDate) + """\","endDate": \"""" + str(s1_postFloodDate) + """\","geometry": \"""" + str(geometry) + """\","area_sampling": "True","tmp_path_same_folder_dwl":"True","artifact_name": "sentinel1_GRD_postflood"}"""
+    string_dict_data_s2Pre =  """{"satelliteParams":{"satelliteType": "Sentinel2","processingLevel": "S2MSI2A","bandmath": ["NDWI"]},"startDate":\"""" + str(s2_preFloodDate) + """\","endDate": \"""" + str(floodDate) + """\","geometry": \"""" + str(geometry) + """\","cloudCover": "[0,20]","area_sampling": "True","artifact_name": "sentinel2_pre_flood","preprocess_data_only": "false"}"""
+    string_dict_data_s2Post = """{"satelliteParams":{"satelliteType": "Sentinel2","processingLevel": "S2MSI2A","bandmath": ["NDWI"]},"startDate":\"""" + str(floodDate) + """\","endDate": \"""" + str(s2_postFloodDate) + """\","geometry": \"""" + str(geometry) + """\","cloudCover": "[0,20]","area_sampling": "True","artifact_name": "sentinel2_post_flood","preprocess_data_only": "false"}"""
+
+    with pipeline_context() as pc:
+
+        s1 = pc.step(name="downloadS1Pre",
+                     function="download_images_s1",
+                     action="job",
+                     secrets=["CDSETOOL_ESA_USER","CDSETOOL_ESA_PASSWORD"],
+                     fs_group='8877',
+                     args=["main.py", string_dict_data_s1Pre],
+                     resources={"mem":{"requests": "32Gi", "limits": "64Gi"}},
+                     volumes=[{
+                        "volume_type": "persistent_volume_claim",
+                        "name": "volume-flood",
+                        "mount_path": "/app/files",
+                        "spec": { "size": "100Gi" }
+                        }
+                    ])
+
+        s2 = pc.step(name="downloadS1Post",
+                     function="download_images_s1",
+                     action="job",
+                     secrets=["CDSETOOL_ESA_USER","CDSETOOL_ESA_PASSWORD"],
+                     fs_group='8877',
+                     args=["main.py", string_dict_data_s1Post],
+                     resources={"mem":{"requests": "32Gi", "limits": "64Gi"}},
+                     volumes=[{
+                        "volume_type": "persistent_volume_claim",
+                        "name": "volume-flood",
+                        "mount_path": "/app/files",
+                        "spec": { "size": "100Gi" }
+                        }
+                    ]).after(s1)
+
+        s3 = pc.step(name="downloadS2Pre",
+                     function="download_images_s2",
+                     action="job",
+                     secrets=["CDSETOOL_ESA_USER","CDSETOOL_ESA_PASSWORD"],
+                     fs_group='8877',
+                     args=["main.py", string_dict_data_s2Pre],
+                     resources={"mem":{"requests": "32Gi", "limits": "64Gi"}},
+                     volumes=[{
+                        "volume_type": "persistent_volume_claim",
+                        "name": "volume-flood",
+                        "mount_path": "/app/files",
+                        "spec": { "size": "100Gi" }
+                        }
+                    ]).after(s2)
+
+        s4 = pc.step(name="downloadS2Post",
+                     function="download_images_s2",
+                     action="job",
+                     secrets=["CDSETOOL_ESA_USER","CDSETOOL_ESA_PASSWORD"],
+                     fs_group='8877',
+                     args=["main.py", string_dict_data_s2Post],
+                     resources={"mem":{"requests": "32Gi", "limits": "64Gi"}},
+                     volumes=[{
+                        "volume_type": "persistent_volume_claim",
+                        "name": "volume-flood",
+                        "mount_path": "/app/files",
+                        "spec": { "size": "100Gi" }
+                        }
+                    ]).after(s3)
+
+        s5 = pc.step(name="elaborate",
+                     function="elaborate",
+                     action="job",
+                     fs_group='8877',
+                     resources={"cpu": {"requests": "3", "limits": "6"},"mem":{"requests": "32Gi", "limits": "64Gi"}},
+                     volumes=[{
+                        "volume_type": "persistent_volume_claim",
+                        "name": "volume-flood",
+                        "mount_path": "/app/files",
+                        "spec": { "size": "200Gi" }
+                    }],
+                     args=['/shared/launch.sh', 'sentinel1_GRD_preflood', 'sentinel1_GRD_postflood', 'sentinel2_pre_flood', 'sentinel2_post_flood', str(geometry), 'Slopes_TN', 'slope_map25832.tif', 'Lakes_TN', 'idrspacq.shp', 'Rivers_TN', 'cif_pta2022_v.shp', str(outputName), str(floodDate), 'EPSG:25832', "['VV','VH']", '700', '7', '15', '2']
+                     ).after(s4)
+```
+
+There is a committed version of this file on the repo.
+
+## 6. Register workflow
+
+Register workflow 'pipeline_flood' in the project. In the following step, we register the workflow using the committed version of pipeline source code on project git repository. It is required to update the 'code_src' url with github username and personal access token in the code cell below
+
+```python
+workflow = proj.new_workflow(
+name="pipeline_flood",
+kind="kfp",
+code_src="git+https://<username>:<personal_access_token>@github.com/tn-aixpa/rs-flood-detection",
+handler="src.flood_pipeline:myhandler")
+```
+
+If you want to modify the pipeline source code, either update the existing version on github repo or register the pipeline with locally modified version of python source file for e.g. the value of parameter 'artifact_name' is set to 'sentinel1_GRD_preflood' in first step S1 of pipeline. If you want to log the artifact with different name inside to the DH platform project, create/update the pipeline code locally by replacing the value of 'artifact_name' key followed by the registration of pipeline using the locally modified file as shown below.
+
+```python
+workflow = proj.new_workflow(name="pipeline_flood", kind="kfp", code_src= "flood_pipeline.py", handler = "myhandler")
+```
+
+## 7. Build workflow
+
+```python
+wfbuild = workflow.run(action="build", wait=True)
+wfbuild.spec
+```
+
+After the build, the pipeline specification and configuration is displayed as the result of this step(wfbuild.spec). The same can be achieved from the console UI dashboard or the left menu using the 'INSPECTOR' button which opens a dialog containing the resource in JSON format.
+
+```python
+{
+    "task": "kfp+build://flood-detection/45a57c99570d41868c9d210e0427c864",
+    "workflow": "kfp://flood-detection/pipeline_flood:5c731db0bd7b4af6a2024627e4b9da66",
+    ...
+  }
+```
+
+In order to integrate the pipeline with the front end UI 'rsde-pipeline-manger', the value of 'task' and 'workflow' keys are the two important configuration parameters that must be set in the in the configuration(config.yml) as taskId and workflowId. For more detailed information see [rsde-pipeline-manger](https://github.com/tn-aixpa/rsde-pipeline-manager)
