@@ -14,7 +14,7 @@ proj = dh.get_or_create_project(PROJECT_NAME)
 
 The pipeline requires shape files input of river, lakes, and slope.
 
-Log the river shape file. Download the zip file from the [SIAT Portal](https://siat.provincia.tn.it/geonetwork/srv/ita/catalog.search#/metadata/p_TN:df06e63c-d0f3-46c9-8ec2-c25a22c50ef7) and extract the contents inside a folder 'Rivers_TN' and log it as project artifact
+<p align="justify">Log the river shape file. Download the zip file from the <a href="https://siat.provincia.tn.it/geonetwork/srv/ita/catalog.search#/metadata/p_TN:df06e63c-d0f3-46c9-8ec2-c25a22c50ef7">SIAT Portal</a> and extract the contents inside a folder 'Rivers_TN' and log it as project artifact</p>
 
 ```python
 artifact_name='Rivers_TN'
@@ -22,7 +22,7 @@ src_path='Rivers_TN'
 artifact_bosco = proj.log_artifact(name=artifact_name, kind="artifact", source=src_path)
 ```
 
-Log the lakes shape file. Download the zip file from the [SIAT Portal](https://siat.provincia.tn.it/geonetwork/srv/ita/catalog.search#/metadata/p_TN:0f1fdc33-5c71-4c6d-81e7-25eb2ab0e599) and extract the contents inside a folder 'Lakes_TN' and log it as project artifact
+<p align="justify">Log the lakes shape file. Download the zip file from the <a href="https://siat.provincia.tn.it/geonetwork/srv/ita/catalog.search#/metadata/p_TN:0f1fdc33-5c71-4c6d-81e7-25eb2ab0e599">SIAT Portal</a> and extract the contents inside a folder 'Lakes_TN' and log it as project artifact</p>
 
 ```python
 artifact_name='Lakes_TN'
@@ -30,7 +30,7 @@ src_path='Lakes_TN'
 artifact_bosco = proj.log_artifact(name=artifact_name, kind="artifact", source=src_path)
 ```
 
-Log the slope shape file. Download the zip file from the [SIAT Portal](https://webgis.provincia.tn.it/) and extract the contents inside a folder 'Slopes_TN' and log it as project artifact
+<p align="justify">Log the slope shape file. Download the zip file from the <a href="https://webgis.provincia.tn.it/">SIAT Portal</a> and extract the contents inside a folder 'Slopes_TN' and log it as project artifact</p>
 
 ```python
 artifact_name='Slopes_TN'
@@ -65,7 +65,7 @@ secret1 = proj.new_secret(name="CDSETOOL_ESA_PASSWORD", secret_value="esa_passwo
 
 ### Post flood Sentinel2 data +20days
 
-<p align="justify">Register 'download_images_s2' operation in the project. The function if of kind container runtime that allows you to deploy deployments, jobs and services on Kubernetes. It uses the base image of sentinel-tools deploved in the context of project which is a wrapper for the Sentinel download and preprocessing routine for the integration with the AIxPA platform. For more details [Click here](https://github.com/tn-aixpa/sentinel-tools/). The parameters passed for sentinel downloads includes the starts and ends dates corresponding to period of two years of data. The ouput of this step will be logged inside to the platfrom project context as indicated by parameter 'artifact_name' ('data_s2_deforestation').Several other paramters can be configures as per requirements for e.g. geometry, cloud cover percentage etc.</p>
+<p align="justify">Register 'download_images_s2' operation in the project. The function if of kind container runtime that allows you to deploy deployments, jobs and services on Kubernetes. It uses the base image of sentinel-tools deploved in the context of project which is a wrapper for the Sentinel download and preprocessing routine for the integration with the AIxPA platform. For more details click <a href="https://github.com/tn-aixpa/sentinel-tools/">here</a>. The parameters passed for sentinel downloads includes the starts and ends dates corresponding to period of two years of data. The ouput of this step will be logged inside to the platfrom project context as indicated by parameter 'artifact_name' ('data_s2_deforestation').Several other paramters can be configures as per requirements for e.g. geometry, cloud cover percentage etc.</p>
 
 ```python
 function_s2 = proj.new_function("download_images_s2",kind="container",image="ghcr.io/tn-aixpa/sentinel-tools:0.11.5",command="python")
