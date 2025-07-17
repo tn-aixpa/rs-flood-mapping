@@ -1,6 +1,6 @@
 # RS-FLOOD-MAPPING
 
-This project implements a pipeline for flood analysis using Sentinel imagery. It processes raw .SAFE or .zip Sentinel inputs, extracts NDWI indices, detect water bodies before and after a flood event, and outputs change detection and probability maps.
+<p align="justify">This project implements a pipeline for flood analysis using Sentinel imagery. It processes raw .SAFE or .zip Sentinel inputs, extracts NDWI indices, detect water bodies before and after a flood event, and outputs change detection and probability maps.</p>
 
 #### AIxPA
 
@@ -8,7 +8,7 @@ This project implements a pipeline for flood analysis using Sentinel imagery. It
 - `ai`: remote sensing
 - `domain`: PA
 
-The context in which this project was developed: This project focuses on leveraging satellite imagery to detect flooded areas. The project pipeline downloads the indices of area of interest (Trentino) from the sentinel download tool. The software process each downloaded tile separately, clip them using python procedure to convert the downloaded data to input files and then process the clipped tiles for the flood analysis.
+<p align="justify">The context in which this project was developed: This project focuses on leveraging satellite imagery to detect flooded areas. The project pipeline downloads the indices of area of interest (Trentino) from the sentinel download tool. The software process each downloaded tile separately, clip them using python procedure to convert the downloaded data to input files and then process the clipped tiles for the flood analysis.</p>
 
 The product contains operations for
 
@@ -24,7 +24,7 @@ The product contains operations for
 
 ### Hardware Requirements
 
-The pipelines can take several hours to complete with 16 CPUs and 64GB Ram for processing data window around flood event date (±20 days sentinel-2 data and ± 7days Sentinel1 data)which is the default period. It consists of two steps (download, elaboration). The download step is dependant on Sentinel Hub dataspace. It could happen that data download takes more time than usual due to various factors, including technical issues, data processing delays, and limitations in the data access infrastructure. The second step 'elaboration' consists of interpolation and post processing steps which are computationally heavy since it is pixel based analysis. The amount of sentinal data is huge that is whay a volume of 100Gi of type 'persistent_volume_claim' is specified to ensure significant data space.
+<p align="justify">The pipelines can take several hours to complete with 16 CPUs and 64GB Ram for processing data window around flood event date (±20 days sentinel-2 data and ± 7days Sentinel1 data)which is the default period. It consists of two steps (download, elaboration). The download step is dependant on Sentinel Hub dataspace. It could happen that data download takes more time than usual due to various factors, including technical issues, data processing delays, and limitations in the data access infrastructure. The second step 'elaboration' consists of interpolation and post processing steps which are computationally heavy since it is pixel based analysis. The amount of sentinal data is huge that is whay a volume of 100Gi of type 'persistent_volume_claim' is specified to ensure significant data space.</p>
 
 ### General Requirements.
 
