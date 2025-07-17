@@ -65,7 +65,7 @@ secret1 = proj.new_secret(name="CDSETOOL_ESA_PASSWORD", secret_value="esa_passwo
 
 ### Post flood Sentinel2 data +20days
 
-Register 'download_images_s2' operation in the project. The function if of kind container runtime that allows you to deploy deployments, jobs and services on Kubernetes. It uses the base image of sentinel-tools deploved in the context of project which is a wrapper for the Sentinel download and preprocessing routine for the integration with the AIxPA platform. For more details [Click here](https://github.com/tn-aixpa/sentinel-tools/). The parameters passed for sentinel downloads includes the starts and ends dates corresponding to period of two years of data. The ouput of this step will be logged inside to the platfrom project context as indicated by parameter 'artifact_name' ('data_s2_deforestation').Several other paramters can be configures as per requirements for e.g. geometry, cloud cover percentage etc.
+<p align="justify">Register 'download_images_s2' operation in the project. The function if of kind container runtime that allows you to deploy deployments, jobs and services on Kubernetes. It uses the base image of sentinel-tools deploved in the context of project which is a wrapper for the Sentinel download and preprocessing routine for the integration with the AIxPA platform. For more details [Click here](https://github.com/tn-aixpa/sentinel-tools/). The parameters passed for sentinel downloads includes the starts and ends dates corresponding to period of two years of data. The ouput of this step will be logged inside to the platfrom project context as indicated by parameter 'artifact_name' ('data_s2_deforestation').Several other paramters can be configures as per requirements for e.g. geometry, cloud cover percentage etc.</p>
 
 ```python
 function_s2 = proj.new_function("download_images_s2",kind="container",image="ghcr.io/tn-aixpa/sentinel-tools:0.11.5",command="python")
@@ -159,7 +159,7 @@ Register 'download_images_s1' operation in the project.
 function_s1 = proj.new_function("download_images_s1",kind="container",image="ghcr.io/tn-aixpa/sentinel-tools:0.11.5",command="python")
 ```
 
-Run this function with input parameters as shown below. The parameters passed for sentinel-1 downloads includes the starts and ends dates corresponding to period of 7 days from flood event date. The ouput of this step will be logged inside to the platfrom project context as indicated by parameter 'artifact_name' ('sentinel1_GRD_postflood').Several other paramters can be configures as per requirements for e.g. geometry, cloud cover percentage etc.
+<p align="justify">Run this function with input parameters as shown below. The parameters passed for sentinel-1 downloads includes the starts and ends dates corresponding to period of 7 days from flood event date. The ouput of this step will be logged inside to the platfrom project context as indicated by parameter 'artifact_name' ('sentinel1_GRD_postflood').Several other paramters can be configures as per requirements for e.g. geometry, cloud cover percentage etc.</p>
 
 Run the function. As a result the post flood sentinel-2 data is logged as project artifact('sentinel2_post_flood')
 
