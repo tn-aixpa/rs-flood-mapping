@@ -16,7 +16,7 @@ proj = dh.get_or_create_project(PROJECT_NAME)
 
 The pipeline requires shape files input of river, lakes, and slope.
 
-<p align="justify">Log the river shape file. Download the zip file from the <a href="https://siat.provincia.tn.it/geonetwork/srv/ita/catalog.search#/metadata/p_TN:df06e63c-d0f3-46c9-8ec2-c25a22c50ef7" target="_blank">SIAT Portal</a> and extract the contents inside a folder 'Rivers_TN' and log it as project artifact</p>
+<p align="justify">Log the river shape file. Download the zip file from the <a href="https://siat.provincia.tn.it/geonetwork/srv/ita/catalog.search#/metadata/p_TN:df06e63c-d0f3-46c9-8ec2-c25a22c50ef7">SIAT Portal</a> and extract the contents inside a folder 'Rivers_TN' and log it as project artifact</p>
 
 ```python
 artifact_name='Rivers_TN'
@@ -24,7 +24,7 @@ src_path='Rivers_TN'
 artifact_bosco = proj.log_artifact(name=artifact_name, kind="artifact", source=src_path)
 ```
 
-Log the lakes shape file. Download the zip file from the [SIAT Portal](https://siat.provincia.tn.it/geonetwork/srv/ita/catalog.search#/metadata/p_TN:0f1fdc33-5c71-4c6d-81e7-25eb2ab0e599) and extract the contents inside a folder 'Lakes_TN' and log it as project artifact
+<p align="justify">Log the lakes shape file. Download the zip file from the <a href="https://siat.provincia.tn.it/geonetwork/srv/ita/catalog.search#/metadata/p_TN:0f1fdc33-5c71-4c6d-81e7-25eb2ab0e599">SIAT Portal</a> and extract the contents inside a folder 'Lakes_TN' and log it as project artifact</p>
 
 ```python
 artifact_name='Lakes_TN'
@@ -32,7 +32,7 @@ src_path='Lakes_TN'
 artifact_bosco = proj.log_artifact(name=artifact_name, kind="artifact", source=src_path)
 ```
 
-Log the slope shape file. Download the zip file from the [SIAT Portal](https://webgis.provincia.tn.it/) and extract the contents inside a folder 'Slopes_TN' and log it as project artifact
+<p align="justify">Log the slope shape file. Download the zip file from the <a href="https://webgis.provincia.tn.it/">SIAT Portal</a> and extract the contents inside a folder 'Slopes_TN' and log it as project artifact</p>
 
 ```python
 artifact_name='Slopes_TN'
@@ -210,7 +210,7 @@ code_src="git+https://<username>:<personal_access_token>@github.com/tn-aixpa/rs-
 handler="src.flood_pipeline:myhandler")
 ```
 
-If you want to modify the pipeline source code, either update the existing version on github repo or register the pipeline with locally modified version of python source file for e.g. the value of parameter 'artifact_name' is set to 'sentinel1_GRD_preflood' in first step S1 of pipeline. If you want to log the artifact with different name inside to the DH platform project, create/update the pipeline code locally by replacing the value of 'artifact_name' key followed by the registration of pipeline using the locally modified file as shown below.
+<p align="justify">If you want to modify the pipeline source code, either update the existing version on github repo or register the pipeline with locally modified version of python source file for e.g. the value of parameter 'artifact_name' is set to 'sentinel1_GRD_preflood' in first step S1 of pipeline. If you want to log the artifact with different name inside to the DH platform project, create/update the pipeline code locally by replacing the value of 'artifact_name' key followed by the registration of pipeline using the locally modified file as shown below.</p>
 
 ```python
 workflow = proj.new_workflow(name="pipeline_flood", kind="kfp", code_src= "flood_pipeline.py", handler = "myhandler")
@@ -233,4 +233,4 @@ After the build, the pipeline specification and configuration is displayed as th
   }
 ```
 
-In order to integrate the pipeline with the front end UI 'rsde-pipeline-manger', the value of 'task' and 'workflow' keys are the two important configuration parameters that must be set in the in the configuration(config.yml) as taskId and workflowId. For more detailed information see [rsde-pipeline-manger](https://github.com/tn-aixpa/rsde-pipeline-manager)
+<p align="justify">In order to integrate the pipeline with the front end UI 'rsde-pipeline-manger', the value of 'task' and 'workflow' keys are the two important configuration parameters that must be set in the in the configuration(config.yml) as taskId and workflowId. For more detailed information see <a href="https://github.com/tn-aixpa/rsde-pipeline-manager">rsde-pipeline-manger</a></p>
