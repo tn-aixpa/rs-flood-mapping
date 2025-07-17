@@ -1,6 +1,6 @@
 # Workflow
 
-In this step we will create a workflow pipeline that establish a clear, repeatable process for handling the set of scenario tasks (download, elaborate). The DH platform pipeline ensures that tasks are completed in a sepcific order. It also provide the ease to fine tune the steps as per requirements of scenario imporving efficiency, consistency, aand traceability. For more detailed information about workflow and their management see the [documentation](https://scc-digitalhub.github.io/docs/tasks/workflows). Inside the project 'src' folder there exist a jypter notebook [workflow.ipynb](../../src/workflow.ipynb) that depicts the creation and management of workflow.
+<p align="justify">In this step we will create a workflow pipeline that establish a clear, repeatable process for handling the set of scenario tasks (download, elaborate). The DH platform pipeline ensures that tasks are completed in a sepcific order. It also provide the ease to fine tune the steps as per requirements of scenario imporving efficiency, consistency, aand traceability. For more detailed information about workflow and their management see the <a href="https://scc-digitalhub.github.io/docs/tasks/workflows">documentation</a>. Inside the project 'src' folder there exist a jypter notebook <a href="../../src/workflow.ipynb">workflow.ipynb</a> that depicts the creation and management of workflow.</p>
 
 ## 1. Initialize the project
 
@@ -16,7 +16,7 @@ proj = dh.get_or_create_project(PROJECT_NAME)
 
 The pipeline requires shape files input of river, lakes, and slope.
 
-Log the river shape file. Download the zip file from the [SIAT Portal](https://siat.provincia.tn.it/geonetwork/srv/ita/catalog.search#/metadata/p_TN:df06e63c-d0f3-46c9-8ec2-c25a22c50ef7) and extract the contents inside a folder 'Rivers_TN' and log it as project artifact
+<p align="justify">Log the river shape file. Download the zip file from the <a href="https://siat.provincia.tn.it/geonetwork/srv/ita/catalog.search#/metadata/p_TN:df06e63c-d0f3-46c9-8ec2-c25a22c50ef7" target="_blank">SIAT Portal</a> and extract the contents inside a folder 'Rivers_TN' and log it as project artifact</p>
 
 ```python
 artifact_name='Rivers_TN'
@@ -58,7 +58,7 @@ secret0 = proj.new_secret(name="CDSETOOL_ESA_USER", secret_value="esa_username")
 secret1 = proj.new_secret(name="CDSETOOL_ESA_PASSWORD", secret_value="esa_password")
 ```
 
-Register 'download_images_s2' operation in the project. The function is of kind container runtime that allows you to deploy deployments, jobs and services on Kubernetes. It uses the base image of sentinel-tools deploved in the context of project which is a wrapper for the Sentinel download and preprocessing routine for the integration with the AIxPA platform. For more details [Click here](https://github.com/tn-aixpa/sentinel-tools/). The purpose of 'download_images_s2' function is to download sentinel-2 data (GRD image tiles)
+<p align="justify">Register 'download_images_s2' operation in the project. The function is of kind container runtime that allows you to deploy deployments, jobs and services on Kubernetes. It uses the base image of sentinel-tools deploved in the context of project which is a wrapper for the Sentinel download and preprocessing routine for the integration with the AIxPA platform. For more details click <a href="https://github.com/tn-aixpa/sentinel-tools/">here</a>. The purpose of 'download_images_s2' function is to download sentinel-2 data (GRD image tiles)</p>
 
 ```python
 function_s2 = proj.new_function(
@@ -90,7 +90,7 @@ function_rs = proj.new_function(
     code_src="launch.sh")
 ```
 
-The function represent a container runtime that allows you to deploy deployments, jobs and services on Kubernetes. It uses the base image of rs-flood-mapping container deploved in the context of project that creates the runtime environment required for the execution. It invovles pulling the base image with gdal installed and installing all the required libraries and launch instructions specified by 'launch.sh' file.
+<p align="justify">The function represent a container runtime that allows you to deploy deployments, jobs and services on Kubernetes. It uses the base image of rs-flood-mapping container deploved in the context of project that creates the runtime environment required for the execution. It invovles pulling the base image with gdal installed and installing all the required libraries and launch instructions specified by 'launch.sh' file.</p>
 
 ## 5. Create workflow pipeline
 
@@ -104,7 +104,7 @@ Workflows can be created and managed as entities similar to functions. From the 
 - s2_preFloodDate (sentinel-2 data 20 days before flood event)
 - s2_postFloodDate (sentinel-2 data 20 days after flood event)
 
-<p align="justify">The inputs are sub organized inside to the workflow among different functions. The first four download steps perform sentinel downloads using the function created in previous step. The download function takes as input a list of arguments (args=["main.py", string_dict_data_s1Pre]) where the first argument is the python script file that will be launched inside to the container and the second argument is the json input string which includes all the necessary parameters of sentinel download operation like date, geometry, product type, cloud cover etc. For more details [Click here](https://github.com/tn-aixpa/sentinel-tools/). The last step of workflow perform elaboration using the 'elaborate' function created in previous step. The elaboration function taks as input a list of arguments where the first argument is the bash script that will be launched on entry inside to the container while the following parameters contains both fixed and dynamic parameters. The fixed parameter includes both the project artifacts names (sentinel1_GRD_preflood, sentinel1_GRD_postflood, sentinel2_pre_flood, sentinel2_post_flood, 'Slopes_TN', 'slope_map25832.tif', 'Lakes_TN', 'idrspacq.shp', 'Rivers_TN', 'cif_pta2022_v.shp') as well as the the scenario configuration parameters like targetCRS, polarization, dem_threshold, slope_threshold, noise_min_pixels, river_buffer_meters. The set of dynamic parameters included outputName, floodDate, geometry etc. which can be passed as input to the main workflow. The workflow can be adopted as per context needs by changing/passing the different parametric values as depicted in 'Register workflow' section.</p>
+<p align="justify">The inputs are sub organized inside to the workflow among different functions. The first four download steps perform sentinel downloads using the function created in previous step. The download function takes as input a list of arguments (args=["main.py", string_dict_data_s1Pre]) where the first argument is the python script file that will be launched inside to the container and the second argument is the json input string which includes all the necessary parameters of sentinel download operation like date, geometry, product type, cloud cover etc. For more details click <a href="https://github.com/tn-aixpa/sentinel-tools/">here</a>. The last step of workflow perform elaboration using the 'elaborate' function created in previous step. The elaboration function taks as input a list of arguments where the first argument is the bash script that will be launched on entry inside to the container while the following parameters contains both fixed and dynamic parameters. The fixed parameter includes both the project artifacts names (sentinel1_GRD_preflood, sentinel1_GRD_postflood, sentinel2_pre_flood, sentinel2_post_flood, 'Slopes_TN', 'slope_map25832.tif', 'Lakes_TN', 'idrspacq.shp', 'Rivers_TN', 'cif_pta2022_v.shp') as well as the the scenario configuration parameters like targetCRS, polarization, dem_threshold, slope_threshold, noise_min_pixels, river_buffer_meters. The set of dynamic parameters included outputName, floodDate, geometry etc. which can be passed as input to the main workflow. The workflow can be adopted as per context needs by changing/passing the different parametric values as depicted in 'Register workflow' section.</p>
 
 ```python
 %%writefile "flood_pipeline.py"
