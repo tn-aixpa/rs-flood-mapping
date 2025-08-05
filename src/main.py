@@ -679,10 +679,16 @@ if __name__ == "__main__":
 
     run_pipeline()
 
+    #upload output artifact
     print(f"Uploading artifact: {outputArtifactName}") 
-    upload_artifact(
-        artifact_name=outputArtifactName,
-        project_name=project_name,
-        src_path=output_folder
-    )
+    zip_file = os.path.join(output_folder, outputArtifactName + '.zip')
+    print(f"Creating zip file: {zip_file}")
+    zf = zipfile.ZipFile(zip_file, "w")
+    for dirname, subdirs, files in os.walk(output_folder):
+        for filename in files:
+            if(filename.endswith('flood_detection_layer.tif')):
+                print(f"Adding {filename} to the zip file")
+                zf.write(os.path.join(dirname, filename), arcname=filename)
+    zf.close()
+    upload_artifact(artifact_name=outputArtifactName,project_name=project_name,src_path=zip_file)
     print("Flood mapping pipeline completed successfully.")
