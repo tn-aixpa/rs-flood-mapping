@@ -22,7 +22,7 @@ run_el = function_rs.run(action="job",
             volumes=[{
             "volume_type": "persistent_volume_claim",
             "name": "volume-flood", # this name has to be equal to the name of the volume created in krm
-            "mount_path": "/app/files",
+            "mount_path": "/app/data",
             "spec": {
                 "size": "125Gi"
             }}],
