@@ -189,7 +189,7 @@ def myhandler(geometry, outputName, floodDate, s1_preFloodDate, s1_postFloodDate
                      volumes=[{
                         "volume_type": "persistent_volume_claim",
                         "name": "volume-flood",
-                        "mount_path": "/app/files",
+                        "mount_path": "/app/data",
                         "spec": { "size": "200Gi" }
                     }],
                      args=['/shared/launch.sh', 'sentinel1_GRD_preflood', 'sentinel1_GRD_postflood', 'sentinel2_pre_flood', 'sentinel2_post_flood', str(geometry), 'Slopes_TN', 'slope_map25832.tif', 'Lakes_TN', 'idrspacq.shp', 'Rivers_TN', 'cif_pta2022_v.shp', str(outputName), str(floodDate), 'EPSG:25832', "['VV','VH']", '700', '7', '15', '2']
