@@ -46,7 +46,7 @@ https://siat.provincia.tn.it/geonetwork/srv/ita/catalog.search#/metadata/p_TN:0f
 https://siat.provincia.tn.it/geonetwork/srv/ita/catalog.search#/metadata/p_TN:df06e63c-d0f3-46c9-8ec2-c25a22c50ef7
 ```
 
--  Download the Slope data from direct link on the <a href="https://huggingface.co/datasets/lbergamasco/trentino-slope-map/blob/main/slope_map25832.tif">Huggingface repository</a> and extract the contents inside a folder 'Slopes_TN' and log it as project artifact
+-  Download the Slope data from direct link on the <a href="https://huggingface.co/datasets/lbergamasco/trentino-slope-map/blob/main/slope_map25832.tif">Huggingface repository</a>
 
 ## Usage
 
