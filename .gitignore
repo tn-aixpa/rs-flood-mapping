@@ -7,3 +7,4 @@ bosco
 *.env
 data
 
+src/jypter_notebook.ipynb
