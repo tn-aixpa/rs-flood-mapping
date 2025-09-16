@@ -567,7 +567,7 @@ def run_pipeline():
     print("Pipeline complete.")
     
 
-## python main.py "{'s1PreFlood':'sentinel1_GRD_preflood','s1PostFlood':'sentinel1_GRD_postflood','s2PreFlood':'sentinel2_pre_flood','s2PostFlood':'sentinel2_post_flood','geomWKT':'POLYGON ((10.644988646837982 45.85539621678084, 10.644988646837982 46.06780100571985, 10.991744628283294 46.06780100571985, 10.991744628283294 45.85539621678084, 10.644988646837982 45.85539621678084))','slopeArtifact':'Slopes_TN','slopeFileName':'slope_map25832.tif','lakeShapeArtifactName':'Lakes_TN','lakeShapeFileName':'idrspacq.shp','riverShapeArtifactName':'Rivers_TN','riverShapeFileName':'cif_pta2022_v.shp','output':'test_nk','eventDate':'2020-10-02','targetCRS':'EPSG:25832','polarization':['VV','VH'],'dem_threshold':700,'slope_threshold':7,'noise_min_pixels':15,'river_buffer_meters':2}"
+## python main.py "{'s1PreFlood':'sentinel1_GRD_preflood','s1PostFlood':'sentinel1_GRD_postflood','s2PreFlood':'sentinel2_pre_flood','s2PostFlood':'sentinel2_post_flood','geomWKT':'POLYGON ((10.644988646837982 45.85539621678084, 10.644988646837982 46.06780100571985, 10.991744628283294 46.06780100571985, 10.991744628283294 45.85539621678084, 10.644988646837982 45.85539621678084))','slopeArtifact':'Slopes_TN','slopeFileName':'trentino_slope_map.tif','lakeShapeArtifactName':'Lakes_TN','lakeShapeFileName':'idrspacq.shp','riverShapeArtifactName':'Rivers_TN','riverShapeFileName':'cif_pta2022_v.shp','output':'test_nk','eventDate':'2020-10-02','targetCRS':'EPSG:25832','polarization':['VV','VH'],'dem_threshold':700,'slope_threshold':7,'noise_min_pixels':15,'river_buffer_meters':2}"
 
 if __name__ == "__main__":
 
@@ -583,7 +583,7 @@ if __name__ == "__main__":
     s1PostFloodArtifactName = json_input['s1PostFlood'] # S1 post flood
     s2PostFloodArtifactName = json_input['s2PostFlood'] # S2 post flood
     s2PreFloodArtifactName = json_input['s2PreFlood'] # S2 pre flood
-    slopeArtifactName = json_input['slopeArtifact'] # Slope aritfact "slope_map_path": os.path.join(BASE_DIR, "data", "slope", "slope_map25832.tif"),
+    slopeArtifactName = json_input['slopeArtifact'] # Slope aritfact "slope_map_path": os.path.join(BASE_DIR, "data", "slope", "trentino_slope_map.tif"),
     slopeFileName = json_input['slopeFileName'] # Slope file name
     lakeShapeArtifactName = json_input['lakeShapeArtifactName'] # Lake Shape artifact
     lakeShapeFileName = json_input['lakeShapeFileName'] # Lake Shape file name
@@ -604,7 +604,7 @@ if __name__ == "__main__":
     s1_zip_folder = os.path.join(BASE_DIR, "data", "sentinel_zips")
     s2_pre_flood_folder = os.path.join(BASE_DIR, "data", "sentinel2", "Sentinel-2(Pre)")
     s2_post_flood_folder = os.path.join(BASE_DIR, "data", "sentinel2", "Sentinel-2(post)")
-    slope_map_path = os.path.join(BASE_DIR, "data", "Slopes_TN", slopeFileName) # "slope_map25832.tif"
+    slope_map_path = os.path.join(BASE_DIR, "data", "Slopes_TN", slopeFileName) # "trentino_slope_map.tif"
     lakes_shapefile = os.path.join(BASE_DIR, "data", "Lakes_TN", lakeShapeFileName) # "Lakes_TN", "idrspacq.shp"
     rivers_shapefile = os.path.join(BASE_DIR, "data", "Rivers_TN", riverShapeFileName) # "Rivers_TN", "cif_pta2022_v.shp"
 
@@ -624,7 +624,7 @@ if __name__ == "__main__":
     os.makedirs(s1_zip_folder, exist_ok=True)
     os.makedirs(s2_post_flood_folder, exist_ok=True)
     os.makedirs(s2_pre_flood_folder, exist_ok=True)
-    os.makedirs(os.path.join(BASE_DIR, "data", "Slopes_TN"), exist_ok=True) # "slope_map25832.tif" //folder name must be same as artifact name
+    os.makedirs(os.path.join(BASE_DIR, "data", "Slopes_TN"), exist_ok=True) # "trentino_slope_map.tif" //folder name must be same as artifact name
     os.makedirs(os.path.join(BASE_DIR, "data", "Lakes_TN"), exist_ok=True)  # Ensure Lakes folder exists
     os.makedirs(os.path.join(BASE_DIR, "data", "Rivers_TN"), exist_ok=True)  # Ensure Rivers folder exists
     # Ensure output folders exist
