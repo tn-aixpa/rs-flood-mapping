@@ -32,7 +32,7 @@ src_path='Lakes_TN'
 artifact_bosco = proj.log_artifact(name=artifact_name, kind="artifact", source=src_path)
 ```
 
-<p align="justify">Log the slope shape file. Download the zip file from the <a href="https://huggingface.co/datasets/lbergamasco/trentino-slope-map/blob/main/slope_map25832.tif">Huggingface repository</a> and extract the contents inside a folder 'Slopes_TN' and log it as project artifact</p>
+<p align="justify">Log the slope shape file. Download the zip file from the <a href="https://huggingface.co/datasets/lbergamasco/trentino-slope-map/blob/main/trentino_slope_map.tif">Huggingface repository</a> and extract the contents inside a folder 'Slopes_TN' and log it as project artifact</p>
 
 ```python
 artifact_name='Slopes_TN'

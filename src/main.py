@@ -650,7 +650,7 @@ if __name__ == "__main__":
     sentinel2_zip_path1 = sentinel2_preflood_artifact.download(s2_pre_flood_folder, overwrite=True)
 
     # Download Shapes & Slopes artifacts
-    print(f"Downloading slop artifact for project: {project_name} Name: {slopeArtifactName}")
+    print(f"Downloading slope artifact for project: {project_name} Name: {slopeArtifactName}")
     slope_artifact = project.get_artifact(slopeArtifactName)
     slope_path =  slope_artifact.download(os.path.join(BASE_DIR, "data", "Slopes_TN"), overwrite=True)
     print(f"Downloading lake shape artifact for project: {project_name} Name: {lakeShapeArtifactName}")
