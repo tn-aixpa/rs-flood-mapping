@@ -686,7 +686,9 @@ if __name__ == "__main__":
     zf = zipfile.ZipFile(zip_file, "w")
     for dirname, subdirs, files in os.walk(output_folder):
         for filename in files:
-            if(filename.endswith('flood_detection_layer.tif')):
+            if(filename.endswith('flood_detection_layer.tif') or
+                filename.endswith('flood_detection_layer_metadata.json') or
+                filename.endswith('flood_detection_layer.shp')):
                 print(f"Adding {filename} to the zip file")
                 zf.write(os.path.join(dirname, filename), arcname=filename)
     zf.close()
