@@ -4,11 +4,18 @@ import datetime
 
 def myhandler(geometry, outputName, floodDate, s1_preFloodDate, s1_postFloodDate, s2_preFloodDate, s2_postFloodDate):
   
-    string_dict_data_s1Pre =  """{"satelliteParams": {"satelliteType": "Sentinel1","processingLevel": "LEVEL1","sensorMode": "IW","productType": "GRD"},"startDate":\"""" + str(s1_preFloodDate) + """\","endDate": \"""" + str(floodDate) + """\","geometry": \"""" + str(geometry) + """\","area_sampling": "True","tmp_path_same_folder_dwl":"True","artifact_name": "sentinel1_GRD_preflood"}"""
-    string_dict_data_s1Post = """{"satelliteParams": {"satelliteType": "Sentinel1","processingLevel": "LEVEL1","sensorMode": "IW","productType": "GRD"},"startDate":\"""" + str(floodDate) + """\","endDate": \"""" + str(s1_postFloodDate) + """\","geometry": \"""" + str(geometry) + """\","area_sampling": "True","tmp_path_same_folder_dwl":"True","artifact_name": "sentinel1_GRD_postflood"}"""
-    string_dict_data_s2Pre =  """{"satelliteParams":{"satelliteType": "Sentinel2","processingLevel": "S2MSI2A","bandmath": ["NDWI"]},"startDate":\"""" + str(s2_preFloodDate) + """\","endDate": \"""" + str(floodDate) + """\","geometry": \"""" + str(geometry) + """\","cloudCover": "[0,20]","area_sampling": "True","artifact_name": "sentinel2_pre_flood","preprocess_data_only": "false"}"""
-    string_dict_data_s2Post = """{"satelliteParams":{"satelliteType": "Sentinel2","processingLevel": "S2MSI2A","bandmath": ["NDWI"]},"startDate":\"""" + str(floodDate) + """\","endDate": \"""" + str(s2_postFloodDate) + """\","geometry": \"""" + str(geometry) + """\","cloudCover": "[0,20]","area_sampling": "True","artifact_name": "sentinel2_post_flood","preprocess_data_only": "false"}"""
-           
+    s1_artifact_pre = "sentinel1_GRD_preflood_" + str(outputName)
+    s1_artifact_post = "sentinel1_GRD_postflood_"+ str(outputName) 
+    s2_artifact_pre = "sentinel2_pre_flood_"+ str(outputName)
+    s2_artifact_post =  "sentinel2_post_flood_"+ str(outputName)
+    
+    string_dict_data_s1Pre =  """{"satelliteParams": {"satelliteType": "Sentinel1","processingLevel": "LEVEL1","sensorMode": "IW","productType": "GRD"},"startDate":\"""" + str(s1_preFloodDate) + """\","endDate": \"""" + str(floodDate) + """\","geometry": \"""" + str(geometry) + """\","area_sampling": "True","tmp_path_same_folder_dwl":"True","artifact_name":  \"""" + str(s1_artifact_pre) + """\"}"""
+    string_dict_data_s1Post = """{"satelliteParams": {"satelliteType": "Sentinel1","processingLevel": "LEVEL1","sensorMode": "IW","productType": "GRD"},"startDate":\"""" + str(floodDate) + """\","endDate": \"""" + str(s1_postFloodDate) + """\","geometry": \"""" + str(geometry) + """\","area_sampling": "True","tmp_path_same_folder_dwl":"True","artifact_name": \"""" + str(s1_artifact_post) + """\"}"""
+    string_dict_data_s2Pre =  """{"satelliteParams":{"satelliteType": "Sentinel2","processingLevel": "S2MSI2A","bandmath": ["NDWI"]},"startDate":\"""" + str(s2_preFloodDate) + """\","endDate": \"""" + str(floodDate) + """\","geometry": \"""" + str(geometry) + """\","cloudCover": "[0,20]","area_sampling": "True","artifact_name" : \"""" + str(s2_artifact_pre) + """\","preprocess_data_only": "false"}"""
+    string_dict_data_s2Post = """{"satelliteParams":{"satelliteType": "Sentinel2","processingLevel": "S2MSI2A","bandmath": ["NDWI"]},"startDate":\"""" + str(floodDate) + """\","endDate": \"""" + str(s2_postFloodDate) + """\","geometry": \"""" + str(geometry) + """\","cloudCover": "[0,20]","area_sampling": "True","artifact_name": \"""" + str(s2_artifact_post) + """\","preprocess_data_only": "false"}"""
+
+    
+    
     with pipeline_context() as pc:
 
         s1 = pc.step(name="downloadS1Pre",
@@ -82,6 +89,6 @@ def myhandler(geometry, outputName, floodDate, s1_preFloodDate, s1_postFloodDate
                         "mount_path": "/app/data",
                         "spec": { "size": "200Gi" }
                     }],
-                     args=['/shared/launch.sh', 'sentinel1_GRD_preflood', 'sentinel1_GRD_postflood', 'sentinel2_pre_flood', 'sentinel2_post_flood', str(geometry), 'Slopes_TN', 'trentino_slope_map.tif', 'Lakes_TN', 'idrspacq.shp', 'Rivers_TN', 'cif_pta2022_v.shp', str(outputName), str(floodDate), 'EPSG:25832', "['VV','VH']", '700', '7', '15', '2']
+                     args=['/shared/launch.sh', str(s1_artifact_pre), str(s1_artifact_post), str(s2_artifact_pre), str(s2_artifact_post), str(geometry), 'Slopes_TN', 'trentino_slope_map.tif', 'Lakes_TN', 'idrspacq.shp', 'Rivers_TN', 'cif_pta2022_v.shp', str(outputName), str(floodDate), 'EPSG:25832', "['VV','VH']", '700', '7', '15', '2']
                      ).after(s4)
      
