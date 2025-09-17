@@ -6,7 +6,7 @@
 function_rs = proj.new_function(
     "elaborate",
     kind="container",
-    image="ghcr.io/tn-aixpa/rs-flood-mapping:2.8_b1",
+    image="ghcr.io/tn-aixpa/rs-flood-mapping:2.8_b5",
     code_src="launch.sh")
 ```
 
