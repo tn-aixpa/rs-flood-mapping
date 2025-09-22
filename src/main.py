@@ -608,6 +608,9 @@ if __name__ == "__main__":
     event_date = json_input['eventDate']  # updated 
     aoi_name = json_input.get('aoi_name', "Unknown")  # if no mention in input then "Unknown" #updated line
 
+    print(f"AOI Name: {aoi_name}") #updated line
+    print(f"Event Date: {event_date}") #updated line
+    
     BASE_DIR = '.'
     # Input folders
     s1_zip_folder = os.path.join(BASE_DIR, "data", "sentinel_zips")
