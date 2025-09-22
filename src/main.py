@@ -315,7 +315,7 @@ def run_s1():
 
     geo_wkt = get_aoi_wkt()
     pre_files, post_files = [], []
-    print(f"Flood date: {flood_date}")
+    #print(f"Flood date: {flood_date}")
     for file in sorted(glob.glob(os.path.join(s1_zip_folder, "*.zip"))):
         print(f"Processing file: {file}")
         date = extract_date_from_filename(os.path.basename(file))
