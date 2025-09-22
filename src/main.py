@@ -3,7 +3,7 @@ import sys
 import json
 import glob
 import json
-from datetime import datetime
+from datetime import datetime, timedelta #updated line
 from pathlib import Path
 import numpy as np
 from rasterio.crs import CRS
@@ -515,10 +515,18 @@ def combine_s1_s2(s1_tiff, s2_tiff, combined_tiff, combined_shp):
         print(f"Fusion failed: {e}")
         raise
 #########################################
-def write_metadata():
+#updated metadata
+def write_metadata(event_date, aoi_name="Unknown"):
     try:
+        event_date = datetime.strptime(event_date, "%Y-%m-%d")
+        start_window = (event_date - timedelta(days=7)).strftime("%Y-%m-%d")
+        end_window = (event_date + timedelta(days=7)).strftime("%Y-%m-%d")
+
         metadata = {
-            "aoi_name": "Unknown",
+            "aoi_name": aoi_name,
+            "event_date": event_date,
+            "image_window_start": start_window,
+            "image_window_end": end_window,
             "sentinel1_used": Path(s1_tiff).exists(),
             "sentinel2_used": Path(s2_tiff).exists(),
             "s1_image_count": len(glob.glob(os.path.join(s1_zip_folder, "*.zip"))),
@@ -545,8 +553,8 @@ def write_metadata():
 
     except Exception as e:
         print(f"Failed to write metadata: {e}")
-
-def run_pipeline():
+####################################
+def run_pipeline(event_date, aoi_name): #updated
     print("Starting Flood Mapping Pipeline")
 
     run_s1()
@@ -563,11 +571,11 @@ def run_pipeline():
     )
 
     # Save summary
-    write_metadata()
+    write_metadata(event_date, aoi_name) #updated
     print("Pipeline complete.")
     
-
-## python main.py "{'s1PreFlood':'sentinel1_GRD_preflood','s1PostFlood':'sentinel1_GRD_postflood','s2PreFlood':'sentinel2_pre_flood','s2PostFlood':'sentinel2_post_flood','geomWKT':'POLYGON ((10.644988646837982 45.85539621678084, 10.644988646837982 46.06780100571985, 10.991744628283294 46.06780100571985, 10.991744628283294 45.85539621678084, 10.644988646837982 45.85539621678084))','slopeArtifact':'Slopes_TN','slopeFileName':'trentino_slope_map.tif','lakeShapeArtifactName':'Lakes_TN','lakeShapeFileName':'idrspacq.shp','riverShapeArtifactName':'Rivers_TN','riverShapeFileName':'cif_pta2022_v.shp','output':'test_nk','eventDate':'2020-10-02','targetCRS':'EPSG:25832','polarization':['VV','VH'],'dem_threshold':700,'slope_threshold':7,'noise_min_pixels':15,'river_buffer_meters':2}"
+#updated command with aoi_name
+## python main.py "{'s1PreFlood':'sentinel1_GRD_preflood','s1PostFlood':'sentinel1_GRD_postflood','s2PreFlood':'sentinel2_pre_flood','s2PostFlood':'sentinel2_post_flood','geomWKT':'POLYGON ((10.644988646837982 45.85539621678084, 10.644988646837982 46.06780100571985, 10.991744628283294 46.06780100571985, 10.991744628283294 45.85539621678084, 10.644988646837982 45.85539621678084))','aoi_name':'Trentino','slopeArtifact':'Slopes_TN','slopeFileName':'trentino_slope_map.tif','lakeShapeArtifactName':'Lakes_TN','lakeShapeFileName':'idrspacq.shp','riverShapeArtifactName':'Rivers_TN','riverShapeFileName':'cif_pta2022_v.shp','output':'test_nk','eventDate':'2020-10-02','targetCRS':'EPSG:25832','polarization':['VV','VH'],'dem_threshold':700,'slope_threshold':7,'noise_min_pixels':15,'river_buffer_meters':2}"
 
 if __name__ == "__main__":
 
@@ -590,7 +598,6 @@ if __name__ == "__main__":
     riverShapeArtifactName = json_input['riverShapeArtifactName'] # Rivers Shape artifact
     riverShapeFileName = json_input['riverShapeFileName'] # Rivers Shape file name
     outputArtifactName = json_input['output'] # Output artifact name
-    floodDate = json_input['eventDate'] # flood date
     geo_wkt = json_input['geomWKT'] # AOI geometry in WKT format
     target_crs = json_input['targetCRS'] # "EPSG:25832"
     polarization = json_input['polarization'] # polarization (VV or VH) for both ["VV", "VH"]
@@ -598,7 +605,9 @@ if __name__ == "__main__":
     slope_threshold = json_input['slope_threshold'] # slope_threshold (7- 15)
     noise_min_pixels = json_input['noise_min_pixels'] # noise_min_pixels more than 10
     river_buffer_meters = json_input['river_buffer_meters'] # river_buffer_meters 1-2
-    
+    event_date = json_input['eventDate']  # updated 
+    aoi_name = json_input.get('aoi_name', "Unknown")  # if no mention in input then "Unknown" #updated line
+
     BASE_DIR = '.'
     # Input folders
     s1_zip_folder = os.path.join(BASE_DIR, "data", "sentinel_zips")
@@ -660,7 +669,7 @@ if __name__ == "__main__":
     rivers_artifact = project.get_artifact(riverShapeArtifactName)
     rivers_shp_path = rivers_artifact.download(os.path.join(BASE_DIR, "data", "Rivers_TN"), overwrite=True)
 
-    flood_date = datetime.strptime(floodDate, "%Y-%m-%d") # "2020-10-02"
+    flood_date = datetime.strptime(event_date, "%Y-%m-%d") # "2020-10-02"
     print(f"flood date: {flood_date}")
 
     s2_pre_flood_files = sorted(glob.glob(os.path.join(s2_pre_flood_folder, "preprocess", "NDWI", "*.tif")))
@@ -677,7 +686,7 @@ if __name__ == "__main__":
         
     proj4_text = 'PROJCS["ETRS89 / UTM zone 32N", GEOGCS["ETRS89", DATUM["European Terrestrial Reference System 1989", SPHEROID["GRS 1980",6378137.0, 298.257222101]], PRIMEM["Greenwich", 0.0], UNIT["degree", 0.017453292519943295]], PROJECTION["Transverse_Mercator"], PARAMETER["central_meridian", 9.0], PARAMETER["latitude_of_origin", 0.0], PARAMETER["scale_factor", 0.9996], PARAMETER["false_easting", 500000.0], PARAMETER["false_northing", 0.0], UNIT["m", 1.0], AXIS["Easting", EAST], AXIS["Northing", NORTH], AUTHORITY["EPSG","25832"]]'
 
-    run_pipeline()
+    run_pipeline(event_date, aoi_name) #updated
 
     #upload output artifact
     print(f"Uploading artifact: {outputArtifactName}") 
