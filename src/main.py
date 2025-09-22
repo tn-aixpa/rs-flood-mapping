@@ -608,9 +608,6 @@ if __name__ == "__main__":
     event_date = json_input['eventDate']  # updated 
     aoi_name = json_input.get('aoi_name', "Unknown")  # if no mention in input then "Unknown" #updated line
 
-    print(f"AOI Name: {aoi_name}") #updated line
-    print(f"Event Date: {event_date}") #updated line
-    
     BASE_DIR = '.'
     # Input folders
     s1_zip_folder = os.path.join(BASE_DIR, "data", "sentinel_zips")
@@ -673,7 +670,9 @@ if __name__ == "__main__":
     rivers_shp_path = rivers_artifact.download(os.path.join(BASE_DIR, "data", "Rivers_TN"), overwrite=True)
 
     flood_date = datetime.strptime(event_date, "%Y-%m-%d") # "2020-10-02"
-    print(f"flood date: {flood_date}")
+    print(f"Flood Date: {flood_date}")
+    print(f"AOI Name: {aoi_name}")
+    
 
     s2_pre_flood_files = sorted(glob.glob(os.path.join(s2_pre_flood_folder, "preprocess", "NDWI", "*.tif")))
     s2_post_flood_files = sorted(glob.glob(os.path.join(s2_post_flood_folder, "preprocess", "NDWI", "*.tif")))
