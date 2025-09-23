@@ -516,15 +516,17 @@ def combine_s1_s2(s1_tiff, s2_tiff, combined_tiff, combined_shp):
         raise
 #########################################
 #updated metadata
+import copy
 def write_metadata(event_date, aoi_name="Unknown"):
     try:
+        event_date_copy = copy.deepcopy(event_date)
         event_date = datetime.strptime(event_date, "%Y-%m-%d")
         start_window = (event_date - timedelta(days=7)).strftime("%Y-%m-%d")
         end_window = (event_date + timedelta(days=7)).strftime("%Y-%m-%d")
 
         metadata = {
             "aoi_name": aoi_name,
-            "event_date": json.dumps(event_date),
+            "event_date": event_date_copy,
             "image_window_start": json.dumps(start_window),
             "image_window_end": json.dumps(end_window),
             "sentinel1_used": Path(s1_tiff).exists(),
