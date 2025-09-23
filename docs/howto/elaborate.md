@@ -18,17 +18,16 @@ The function aims at downloading all the flood inputs from project context and p
 
 ```python
 run_el = function_rs.run(action="job",
-            fs_group='8877',
-            volumes=[{
-            "volume_type": "persistent_volume_claim",
-            "name": "volume-flood", # this name has to be equal to the name of the volume created in krm
-            "mount_path": "/app/data",
-            "spec": {
-                "size": "125Gi"
-            }}],
-            args=['/shared/launch.sh', 'sentinel1_GRD_preflood', 'sentinel1_GRD_postflood', 'sentinel2_pre_flood', 'sentinel2_post_flood', 'POLYGON ((10.644988646837982 45.85539621678084, 10.644988646837982 46.06780100571985, 10.991744628283294 46.06780100571985, 10.991744628283294 45.85539621678084, 10.644988646837982 45.85539621678084))', 'Slopes_TN', 'trentino_slope_map.tif', 'Lakes_TN', 'idrspacq.shp', 'Rivers_TN', 'cif_pta2022_v.shp', 'output_flood_mask', '2020-10-02', 'EPSG:25832', ['VV','VH'], '700', '7', '15', '2']
-         )
-)
+                fs_group='8877',
+                resources={"cpu": {"requests": "3", "limits": "6"},"mem":{"requests": "32Gi", "limits": "64Gi"}},
+                volumes=[{
+                   "volume_type": "persistent_volume_claim",
+                   "name": "volume-flood",
+                   "mount_path": "/app/data",
+                   "spec": { "size": "200Gi" }
+                 }],
+            args=['/shared/launch.sh', 'sentinel1_GRD_preflood', 'sentinel1_GRD_postflood', 'sentinel2_pre_flood', 'sentinel2_post_flood', 'POLYGON ((10.644988646837982 45.85539621678084, 10.644988646837982 46.06780100571985, 10.991744628283294 46.06780100571985, 10.991744628283294 45.85539621678084, 10.644988646837982 45.85539621678084))', 'Slopes_TN', 'trentino_slope_map.tif', 'Lakes_TN', 'idrspacq.shp', 'Rivers_TN', 'cif_pta2022_v.shp', 'garda_oct_2020', '2020-10-02', 'EPSG:25832', "['VV','VH']", '700', '7', '15', '2', 'val di fassa']
+            )
 ```
 
 <p align="justify">As indicated in the project documentation, the pixel based analysis performed in the elaboration steps are computation heavy. The best possible performance matrix is more or less around the configuration indicated in the step above. The amount of sentinal data can vary. A safe limit volume of 250Gi is specified as persistent volume claim to ensure significant data space. The function takes around 40 mins to complete with 16 CPUs and 64GB Ram for 2 years of data which is the default period. The output GeoTIFF raster file flood_detection_layer.tif is saved in the project context as an artifact zip file (output_flood_mask).</p>

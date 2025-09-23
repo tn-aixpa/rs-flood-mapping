@@ -112,7 +112,7 @@ Workflows can be created and managed as entities similar to functions. From the 
 from digitalhub_runtime_kfp.dsl import pipeline_context
 import datetime
 
-def myhandler(geometry, outputName, floodDate, s1_preFloodDate, s1_postFloodDate, s2_preFloodDate, s2_postFloodDate):
+def myhandler(geometry, outputName, floodDate, aoiName, s1_preFloodDate, s1_postFloodDate, s2_preFloodDate, s2_postFloodDate):
   
     s1_artifact_pre = "sentinel1_GRD_preflood_" + str(outputName)
     s1_artifact_post = "sentinel1_GRD_postflood_"+ str(outputName) 
@@ -199,8 +199,9 @@ def myhandler(geometry, outputName, floodDate, s1_preFloodDate, s1_postFloodDate
                         "mount_path": "/app/data",
                         "spec": { "size": "200Gi" }
                     }],
-                     args=['/shared/launch.sh', str(s1_artifact_pre), str(s1_artifact_post), str(s2_artifact_pre), str(s2_artifact_post), str(geometry), 'Slopes_TN', 'trentino_slope_map.tif', 'Lakes_TN', 'idrspacq.shp', 'Rivers_TN', 'cif_pta2022_v.shp', str(outputName), str(floodDate), 'EPSG:25832', "['VV','VH']", '700', '7', '15', '2']
+                     args=['/shared/launch.sh', str(s1_artifact_pre), str(s1_artifact_post), str(s2_artifact_pre), str(s2_artifact_post), str(geometry), 'Slopes_TN', 'trentino_slope_map.tif', 'Lakes_TN', 'idrspacq.shp', 'Rivers_TN', 'cif_pta2022_v.shp', str(outputName), str(floodDate), 'EPSG:25832', "['VV','VH']", '700', '7', '15', '2', str(aoiName)]
                      ).after(s4)
+
 ```
 
 There is a committed version of this file on the repo.
