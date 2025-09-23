@@ -527,14 +527,14 @@ def write_metadata(event_date, aoi_name="Unknown"):
         metadata = {
             "aoi_name": aoi_name,
             "event_date": event_date_copy,
-            "image_window_start": json.dumps(start_window),
-            "image_window_end": json.dumps(end_window),
+            "image_window_start": start_window,
+            "image_window_end": end_window,
             "sentinel1_used": Path(s1_tiff).exists(),
             "sentinel2_used": Path(s2_tiff).exists(),
             "s1_image_count": len(glob.glob(os.path.join(s1_zip_folder, "*.zip"))),
             "s2_pre_ndwi_count": len(glob.glob(os.path.join(s2_pre_flood_folder, "preprocess", "NDWI", "*.tif"))),
             "s2_post_ndwi_count": len(glob.glob(os.path.join(s2_post_flood_folder, "preprocess", "NDWI", "*.tif"))),
-            "processed_on": json.dumps(datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+            "processed_on": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "output_tiff": combined_tiff,
             "output_shapefile": combined_shapefile
         }
