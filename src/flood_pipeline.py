@@ -61,8 +61,7 @@ def myhandler(geometry, outputName, floodDate, aoiName, s1_preFloodDate, s1_post
                         "mount_path": "/app/files",
                         "spec": { "size": "100Gi" }
                         }
-                    ])
-            # .after(s2)
+                    ]).after(s2)
 
         s4 = pc.step(name="downloadS2Post",
                      function="download_images_s2",
