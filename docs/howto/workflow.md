@@ -64,7 +64,7 @@ secret1 = proj.new_secret(name="CDSETOOL_ESA_PASSWORD", secret_value="esa_passwo
 function_s2 = proj.new_function(
     "download_images_s2",
     kind="container",
-    image="ghcr.io/tn-aixpa/sentinel-tools:0.11.5",
+    image="ghcr.io/tn-aixpa/sentinel-tools:0.11.6",
     command="python")
 ```
 
@@ -74,7 +74,7 @@ Register 'download_images_s1' operation in the project.
 function_s1 = proj.new_function(
     "download_images_s1",
     kind="container",
-    image="ghcr.io/tn-aixpa/sentinel-tools:0.11.5",
+    image="ghcr.io/tn-aixpa/sentinel-tools:0.11.6",
     command="python")
 ```
 
@@ -86,7 +86,7 @@ The purpose of this function is to download sentinel1 data(GRD image tiles) base
 function_rs = proj.new_function(
     "elaborate",
     kind="container",
-    image="ghcr.io/tn-aixpa/rs-flood-mapping:2.9",
+    image="ghcr.io/tn-aixpa/rs-flood-mapping:3.0",
     code_src="launch.sh")
 ```
 
