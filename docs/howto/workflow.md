@@ -86,7 +86,7 @@ The purpose of this function is to download sentinel1 data(GRD image tiles) base
 function_rs = proj.new_function(
     "elaborate",
     kind="container",
-    image="ghcr.io/tn-aixpa/rs-flood-mapping:3.0",
+    image="ghcr.io/tn-aixpa/rs-flood-mapping:3.1",
     code_src="launch.sh")
 ```
 
