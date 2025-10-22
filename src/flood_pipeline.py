@@ -25,6 +25,7 @@ def myhandler(geometry, outputName, floodDate, aoiName, s1_preFloodDate, s1_post
                      fs_group='8877',
                      args=["main.py", string_dict_data_s1Pre],
                      resources={"mem":{"requests": "32Gi", "limits": "64Gi"}},
+                     envs=[{"name": "TMPDIR", "value": "/app/files"}],
                      volumes=[{
                         "volume_type": "persistent_volume_claim",
                         "name": "volume-flood",
@@ -40,6 +41,7 @@ def myhandler(geometry, outputName, floodDate, aoiName, s1_preFloodDate, s1_post
                      fs_group='8877',
                      args=["main.py", string_dict_data_s1Post],
                      resources={"mem":{"requests": "32Gi", "limits": "64Gi"}},
+                     envs=[{"name": "TMPDIR", "value": "/app/files"}],
                      volumes=[{
                         "volume_type": "persistent_volume_claim",
                         "name": "volume-flood",
@@ -55,6 +57,7 @@ def myhandler(geometry, outputName, floodDate, aoiName, s1_preFloodDate, s1_post
                      fs_group='8877',
                      args=["main.py", string_dict_data_s2Pre],
                      resources={"mem":{"requests": "32Gi", "limits": "64Gi"}},
+                     envs=[{"name": "TMPDIR", "value": "/app/files"}],
                      volumes=[{
                         "volume_type": "persistent_volume_claim",
                         "name": "volume-flood",
@@ -70,6 +73,7 @@ def myhandler(geometry, outputName, floodDate, aoiName, s1_preFloodDate, s1_post
                      fs_group='8877',
                      args=["main.py", string_dict_data_s2Post],
                      resources={"mem":{"requests": "32Gi", "limits": "64Gi"}},
+                     envs=[{"name": "TMPDIR", "value": "/app/files"}],
                      volumes=[{
                         "volume_type": "persistent_volume_claim",
                         "name": "volume-flood",
