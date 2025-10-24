@@ -197,6 +197,7 @@ def myhandler(geometry, outputName, floodDate, aoiName, s1_preFloodDate, s1_post
                      action="job",
                      fs_group='8877',
                      resources={"cpu": {"requests": "3", "limits": "6"},"mem":{"requests": "32Gi", "limits": "64Gi"}},
+                     envs=[{"name": "TMPDIR", "value": "/app/data"}],
                      volumes=[{
                         "volume_type": "persistent_volume_claim",
                         "name": "volume-flood",
