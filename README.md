@@ -1,6 +1,6 @@
 # RS-FLOOD-MAPPING
 
-<p align="justify">This project implements a pipeline for flood analysis using Sentinel imagery. It processes raw .SAFE or .zip Sentinel inputs, extracts NDWI indices, detect water bodies before and after a flood event, and outputs change detection and probability maps.</p>
+<p align="justify">This project implements a pipeline for flood analysis (Trentino Province only) using Sentinel imagery. It processes raw .SAFE or .zip Sentinel inputs, computes water indices, predicts water before and after a flood event, and outputs flood detection layer. </p>
 
 #### AIxPA
 
@@ -8,23 +8,23 @@
 - `ai`: remote sensing
 - `domain`: PA
 
-<p align="justify">The context in which this project was developed: This project focuses on leveraging satellite imagery to detect flooded areas. The project pipeline downloads the indices of area of interest (Trentino) from the sentinel download tool. The software process each downloaded tile separately, clip them using python procedure to convert the downloaded data to input files and then process the clipped tiles for the flood analysis.</p>
+<p align="justify">The context in which this project was developed: This project focuses on leveraging satellite imagery to detect flooded areas. The project pipeline downloads the images of area of interest (Trentino) from the sentinel download tool. The software processes each downloaded Sentinel-1 and Sentinel-2 product individually. A Python procedure is used to clip the data over the area of interest, converting them into standardized input files, which are then analyzed to estimate flood extent. </p>
 
 The product contains operations for
 
-- Download Sentinel-1 and Sentinel-2 data using tile-specific metadata
+- Download Sentinel-1 (scene-based) and Sentinel-2 (tile-based) data using product-specific metadata.
 - Perform elaboration
-  - Compute NDWI indices to detect water bodies before and after a flood event.
-  - Calculate flood extent by analyzing pre- and post-event backscatter differences on sentine-1 data.
-  - ComputeRainfall analysis(CHIRPS) to understand rainfall trend and impact on flood event.
-  - Post-process change maps to improve water body masking.
+  - Compute NDWI indices from Sentinel-2 imagery to detect water bodies before and after the flood event.
+  - Calculate flood extent by analyzing pre- and post-event backscatter differences from Sentinel-1 data
+  - Combine both results from Sentinel-1 and Sentinel-2 to have one flood prediction layer.
+  - Post-process change maps to improve the results by masking permanent water bodies.
 - Log results as GeoTIFF raster files Raster and vector outputs.
 
 ## Requirements!
 
 ### Hardware Requirements
 
-<p align="justify">The pipelines can take several hours to complete with 16 CPUs and 64GB Ram for processing data window around flood event date (±20 days sentinel-2 data and ± 7days Sentinel1 data)which is the default period. It consists of two steps (download, elaboration). The download step is dependant on Sentinel Hub dataspace. It could happen that data download takes more time than usual due to various factors, including technical issues, data processing delays, and limitations in the data access infrastructure. The second step 'elaboration' consists of interpolation and post processing steps which are computationally heavy since it is pixel based analysis. The amount of sentinal data is huge that is whay a volume of 100Gi of type 'persistent_volume_claim' is specified to ensure significant data space.</p>
+<p align="justify">The pipelines can take several hours to complete with 16 CPUs and 64GB Ram for processing data window around flood event date (±20 days sentinel-2 data and ± 7days Sentinel-1 data)which is the default period. It consists of two steps (download, elaboration). The download step is dependant on Sentinel Hub dataspace. It could happen that data download takes more time than usual due to various factors, including technical issues, data processing delays, and limitations in the data access infrastructure. The second step 'elaboration' consists of interpolation and post processing steps which are computationally heavy since it is pixel based analysis. The amount of sentinal data is huge that is whay a volume of 100Gi of type 'persistent_volume_claim' is specified to ensure significant data space.</p>
 
 ### General Requirements.
 
