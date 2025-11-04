@@ -212,13 +212,13 @@ workflow = proj.new_workflow(
 name="pipeline_flood",
 kind="hera",
 code_src="git+https://<username>:<personal_access_token>@github.com/tn-aixpa/rs-flood-detection",
-handler="src.flood_pipeline:myhandler")
+handler="src.flood_pipeline:pipeline")
 ```
 
 <p align="justify">If you want to modify the pipeline source code, either update the existing version on github repo or register the pipeline with locally modified version of python source file for e.g. the value of parameter 'artifact_name' is set to 'sentinel1_GRD_preflood' in first step S1 of pipeline. If you want to log the artifact with different name inside to the DH platform project, create/update the pipeline code locally by replacing the value of 'artifact_name' key followed by the registration of pipeline using the locally modified file as shown below.</p>
 
 ```python
-workflow = proj.new_workflow(name="pipeline_flood", kind="hera", code_src= "flood_pipeline.py", handler = "myhandler")
+workflow = proj.new_workflow(name="pipeline_flood", kind="hera", code_src= "flood_pipeline.py", handler = "pipeline")
 ```
 
 ## 7. Build workflow
