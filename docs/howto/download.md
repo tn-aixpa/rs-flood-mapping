@@ -156,7 +156,7 @@ run.refresh().status.state
 Register 'download_images_s1' operation in the project.
 
 ```python
-function_s1 = proj.new_function("download_images_s1",kind="container",image="ghcr.io/tn-aixpa/sentinel-tools:6",command="python")
+function_s1 = proj.new_function("download_images_s1",kind="container",image="ghcr.io/tn-aixpa/sentinel-tools:0.11.7",command="python")
 ```
 
 <p align="justify">Run this function with input parameters as shown below. The parameters passed for sentinel-1 downloads includes the starts and ends dates corresponding to period of 7 days from flood event date. The ouput of this step will be logged inside to the platfrom project context as indicated by parameter 'artifact_name' ('sentinel1_GRD_postflood').Several other paramters can be configures as per requirements for e.g. geometry, cloud cover percentage etc.</p>
