@@ -68,7 +68,7 @@ secret1 = proj.new_secret(name="CDSETOOL_ESA_PASSWORD", secret_value="esa_passwo
 <p align="justify">Register 'download_images_s2' operation in the project. The function if of kind container runtime that allows you to deploy deployments, jobs and services on Kubernetes. It uses the base image of sentinel-tools deploved in the context of project which is a wrapper for the Sentinel download and preprocessing routine for the integration with the AIxPA platform. For more details click <a href="https://github.com/tn-aixpa/sentinel-tools/">here</a>. The parameters passed for sentinel downloads includes the starts and ends dates corresponding to period of two years of data. The ouput of this step will be logged inside to the platfrom project context as indicated by parameter 'artifact_name' ('data_s2_deforestation').Several other paramters can be configures as per requirements for e.g. geometry, cloud cover percentage etc.</p>
 
 ```python
-function_s2 = proj.new_function("download_images_s2",kind="container",image="ghcr.io/tn-aixpa/sentinel-tools:0.11.7",command="python")
+function_s2 = proj.new_function("download_images_s2",kind="container",image="ghcr.io/tn-aixpa/sentinel-tools:0.14.6",command="python")
 ```
 
 ```python
@@ -156,7 +156,7 @@ run.refresh().status.state
 Register 'download_images_s1' operation in the project.
 
 ```python
-function_s1 = proj.new_function("download_images_s1",kind="container",image="ghcr.io/tn-aixpa/sentinel-tools:0.11.7",command="python")
+function_s1 = proj.new_function("download_images_s1",kind="container",image="ghcr.io/tn-aixpa/sentinel-tools:0.14.6",command="python")
 ```
 
 <p align="justify">Run this function with input parameters as shown below. The parameters passed for sentinel-1 downloads includes the starts and ends dates corresponding to period of 7 days from flood event date. The ouput of this step will be logged inside to the platfrom project context as indicated by parameter 'artifact_name' ('sentinel1_GRD_postflood').Several other paramters can be configures as per requirements for e.g. geometry, cloud cover percentage etc.</p>
