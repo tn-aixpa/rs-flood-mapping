@@ -64,7 +64,7 @@ secret1 = proj.new_secret(name="CDSETOOL_ESA_PASSWORD", secret_value="esa_passwo
 function_s2 = proj.new_function(
     "download_images_s2",
     kind="container",
-    image="ghcr.io/tn-aixpa/sentinel-tools:0.11.6",
+    image="ghcr.io/tn-aixpa/sentinel-tools:0.14.6",
     command="python")
 ```
 
@@ -74,7 +74,7 @@ Register 'download_images_s1' operation in the project.
 function_s1 = proj.new_function(
     "download_images_s1",
     kind="container",
-    image="ghcr.io/tn-aixpa/sentinel-tools:0.11.6",
+    image="ghcr.io/tn-aixpa/sentinel-tools:0.14.6",
     command="python")
 ```
 
@@ -86,7 +86,7 @@ The purpose of this function is to download sentinel1 data(GRD image tiles) base
 function_rs = proj.new_function(
     "elaborate",
     kind="container",
-    image="ghcr.io/tn-aixpa/rs-flood-mapping:3.2",
+    image="ghcr.io/tn-aixpa/rs-flood-mapping:0.14.6",
     code_src="launch.sh")
 ```
 
@@ -107,106 +107,98 @@ Workflows can be created and managed as entities similar to functions. From the 
 <p align="justify">The inputs are sub organized inside to the workflow among different functions. The first four download steps perform sentinel downloads using the function created in previous step. The download function takes as input a list of arguments (args=["main.py", string_dict_data_s1Pre]) where the first argument is the python script file that will be launched inside to the container and the second argument is the json input string which includes all the necessary parameters of sentinel download operation like date, geometry, product type, cloud cover etc. For more details click <a href="https://github.com/tn-aixpa/sentinel-tools/">here</a>. The last step of workflow perform elaboration using the 'elaborate' function created in previous step. The elaboration function taks as input a list of arguments where the first argument is the bash script that will be launched on entry inside to the container while the following parameters contains both fixed and dynamic parameters. The fixed parameter includes both the project artifacts names (sentinel1_GRD_preflood, sentinel1_GRD_postflood, sentinel2_pre_flood, sentinel2_post_flood, 'Slopes_TN', 'trentino_slope_map.tif', 'Lakes_TN', 'idrspacq.shp', 'Rivers_TN', 'cif_pta2022_v.shp') as well as the the scenario configuration parameters like targetCRS, polarization, dem_threshold, slope_threshold, noise_min_pixels, river_buffer_meters. The set of dynamic parameters included outputName, floodDate, geometry etc. which can be passed as input to the main workflow. The workflow can be adopted as per context needs by changing/passing the different parametric values as depicted in 'Register workflow' section.</p>
 
 ```python
-%%writefile "flood_pipeline.py"
+%%writefile "flood_pipeline_hera.py"
 
-from digitalhub_runtime_kfp.dsl import pipeline_context
-import datetime
+from hera.workflows import Workflow, DAG, Parameter
+from digitalhub_runtime_hera.dsl import step
 
-def myhandler(geometry, outputName, floodDate, aoiName, s1_preFloodDate, s1_postFloodDate, s2_preFloodDate, s2_postFloodDate):
-  
-    s1_artifact_pre = "sentinel1_GRD_preflood_" + str(outputName)
-    s1_artifact_post = "sentinel1_GRD_postflood_"+ str(outputName) 
-    s2_artifact_pre = "sentinel2_pre_flood_"+ str(outputName)
-    s2_artifact_post =  "sentinel2_post_flood_"+ str(outputName)
-    
-    string_dict_data_s1Pre =  """{"satelliteParams": {"satelliteType": "Sentinel1","processingLevel": "LEVEL1","sensorMode": "IW","productType": "GRD"},"startDate":\"""" + str(s1_preFloodDate) + """\","endDate": \"""" + str(floodDate) + """\","geometry": \"""" + str(geometry) + """\","area_sampling": "True","tmp_path_same_folder_dwl":"True","artifact_name":  \"""" + str(s1_artifact_pre) + """\"}"""
-    string_dict_data_s1Post = """{"satelliteParams": {"satelliteType": "Sentinel1","processingLevel": "LEVEL1","sensorMode": "IW","productType": "GRD"},"startDate":\"""" + str(floodDate) + """\","endDate": \"""" + str(s1_postFloodDate) + """\","geometry": \"""" + str(geometry) + """\","area_sampling": "True","tmp_path_same_folder_dwl":"True","artifact_name": \"""" + str(s1_artifact_post) + """\"}"""
-    string_dict_data_s2Pre =  """{"satelliteParams":{"satelliteType": "Sentinel2","processingLevel": "S2MSI2A","bandmath": ["NDWI"]},"startDate":\"""" + str(s2_preFloodDate) + """\","endDate": \"""" + str(floodDate) + """\","geometry": \"""" + str(geometry) + """\","cloudCover": "[0,20]","area_sampling": "True","artifact_name" : \"""" + str(s2_artifact_pre) + """\","preprocess_data_only": "false"}"""
-    string_dict_data_s2Post = """{"satelliteParams":{"satelliteType": "Sentinel2","processingLevel": "S2MSI2A","bandmath": ["NDWI"]},"startDate":\"""" + str(floodDate) + """\","endDate": \"""" + str(s2_postFloodDate) + """\","geometry": \"""" + str(geometry) + """\","cloudCover": "[0,20]","area_sampling": "True","artifact_name": \"""" + str(s2_artifact_post) + """\","preprocess_data_only": "false"}"""
+def pipeline():
+    # Create a new Workflow with an entrypoint DAG and a parameter
+    with Workflow(entrypoint="dag", arguments=[
+        Parameter(name="geometry"),
+        Parameter(name="outputName"),
+        Parameter(name="floodDate"),
+        Parameter(name="aoiName"),
+        Parameter(name="s1_preFloodDate"),
+        Parameter(name="s1_postFloodDate"),
+        Parameter(name="s2_preFloodDate"),
+        Parameter(name="s2_postFloodDate"),
+        ]) as w:
 
-    
-    
-    with pipeline_context() as pc:
+        with DAG(name="dag"):
+            # Create a new Workflow with an entrypoint DAG and a parameter
+            s1_artifact_pre = "sentinel1_GRD_preflood_" + str(w.get_parameter("outputName"))
+            s1_artifact_post = "sentinel1_GRD_postflood_"+ str(w.get_parameter("outputName"))
+            s2_artifact_pre = "sentinel2_pre_flood_"+ str(w.get_parameter("outputName"))
+            s2_artifact_post =  "sentinel2_post_flood_"+ str(w.get_parameter("outputName"))
+                    
+            string_dict_data_s1Pre =  """{"satelliteParams": {"satelliteType": "Sentinel1","processingLevel": "LEVEL1","sensorMode": "IW","productType": "GRD"},"startDate":\"""" + str(w.get_parameter("s1_preFloodDate")) + """\","endDate": \"""" + str(w.get_parameter("floodDate")) + """\","geometry": \"""" + str(w.get_parameter("geometry")) + """\","area_sampling": "True","tmp_path_same_folder_dwl":"True","artifact_name":  \"""" + str(s1_artifact_pre) + """\"}"""
+            string_dict_data_s1Post = """{"satelliteParams": {"satelliteType": "Sentinel1","processingLevel": "LEVEL1","sensorMode": "IW","productType": "GRD"},"startDate":\"""" + str(w.get_parameter("floodDate")) + """\","endDate": \"""" + str(w.get_parameter("s1_postFloodDate")) + """\","geometry": \"""" + str(w.get_parameter("geometry")) + """\","area_sampling": "True","tmp_path_same_folder_dwl":"True","artifact_name": \"""" + str(s1_artifact_post) + """\"}"""
+            string_dict_data_s2Pre =  """{"satelliteParams":{"satelliteType": "Sentinel2","processingLevel": "S2MSI2A","bandmath": ["NDWI"]},"startDate":\"""" + str(w.get_parameter("s2_preFloodDate")) + """\","endDate": \"""" + str(w.get_parameter("floodDate")) + """\","geometry": \"""" + str(w.get_parameter("geometry")) + """\","cloudCover": "[0,20]","area_sampling": "True","artifact_name" : \"""" + str(s2_artifact_pre) + """\","preprocess_data_only": "false"}"""
+            string_dict_data_s2Post = """{"satelliteParams":{"satelliteType": "Sentinel2","processingLevel": "S2MSI2A","bandmath": ["NDWI"]},"startDate":\"""" + str(w.get_parameter("floodDate")) + """\","endDate": \"""" + str(w.get_parameter("s2_postFloodDate")) + """\","geometry": \"""" + str(w.get_parameter("geometry")) + """\","cloudCover": "[0,20]","area_sampling": "True","artifact_name": \"""" + str(s2_artifact_post) + """\","preprocess_data_only": "false"}"""
 
-        s1 = pc.step(name="downloadS1Pre",
-                     function="download_images_s1",
-                     action="job",
-                     secrets=["CDSETOOL_ESA_USER","CDSETOOL_ESA_PASSWORD"],
-                     fs_group='8877',
-                     args=["main.py", string_dict_data_s1Pre],
-                     resources={"cpu": {"requests": "3", "limits": "6"},"mem":{"requests": "32Gi", "limits": "64Gi"}},
-                     envs=[{"name": "TMPDIR", "value": "/app/files"}],
-                     volumes=[{
-                        "volume_type": "persistent_volume_claim",
-                        "name": "volume-flood",
-                        "mount_path": "/app/files",
-                        "spec": { "size": "100Gi" }
-                        }]
+            s1 = step(template={"action":"job",
+                                "args":["main.py", string_dict_data_s1Pre],
+                                "secrets":["CDSETOOL_ESA_USER","CDSETOOL_ESA_PASSWORD"],
+                                "fs_group":"8877",
+                                "resources":{"cpu": "6", "mem": "32Gi"},
+                                "envs":[{"name": "TMPDIR", "value": "/app/files"}],
+                                "volumes":[{"volume_type": "persistent_volume_claim","name": "volume-flood","mount_path": "/app/files","spec": { "size": "100Gi" }}]
+                               }, 
+                    function="download-images-s1",
+                    name="s1-pre"
+                   )
+            
+            s2 = step(template={"action":"job",
+                                "args": ["main.py", string_dict_data_s1Post],
+                                "secrets":["CDSETOOL_ESA_USER","CDSETOOL_ESA_PASSWORD"],
+                                "fs_group":"8877",
+                                "resources":{"cpu": "6", "mem": "32Gi"},
+                                "envs":[{"name": "TMPDIR", "value": "/app/files"}],
+                                "volumes":[{"volume_type": "persistent_volume_claim","name": "volume-flood","mount_path": "/app/files","spec": { "size": "100Gi" }}]
+                               },
+                    function="download-images-s1",
+                    name="s1-post"
                     )
+            
+            s3 = step(template={"action":"job",
+                                "args": ["main.py", string_dict_data_s2Pre],
+                                "secrets":["CDSETOOL_ESA_USER","CDSETOOL_ESA_PASSWORD"],
+                                "fs_group":"8877",
+                                "resources":{"cpu": "6", "mem": "32Gi"},                                
+                                "envs":[{"name": "TMPDIR", "value": "/app/files"}],
+                                "volumes":[{"volume_type": "persistent_volume_claim","name": "volume-flood","mount_path": "/app/files","spec": { "size": "100Gi" }}]
+                               },
+                    function="download-images-s2",
+                    name="s2-pre"
+                    )
+                    
+            s4 = step(template={"action":"job",
+                                "args": ["main.py", string_dict_data_s2Post],
+                                "secrets":["CDSETOOL_ESA_USER","CDSETOOL_ESA_PASSWORD"],
+                                "fs_group":"8877",
+                                "resources":{"cpu": "6", "mem": "32Gi"},                                
+                                "envs":[{"name": "TMPDIR", "value": "/app/files"}],
+                                "volumes":[{"volume_type": "persistent_volume_claim","name": "volume-flood","mount_path": "/app/files","spec": { "size": "100Gi" }}]
+                               },
+                    function="download-images-s2",
+                    name="s2-post"
+                    )
+            
+            s5 = step(template={"action":"job",
+                                "args": ['/shared/launch.sh', str(s1_artifact_pre), str(s1_artifact_post), str(s2_artifact_pre), str(s2_artifact_post), str(w.get_parameter("geometry")), 'Slopes_TN', 'trentino_slope_map.tif', 'Lakes_TN', 'idrspacq.shp', 'Rivers_TN', 'cif_pta2022_v.shp', str(w.get_parameter("outputName")), str(w.get_parameter("floodDate")), 'EPSG:25832', "['VV','VH']", '900', '17', '9', '4', str(w.get_parameter("aoiName"))],
+                                "fs_group":"8877",
+                                "resources":{"cpu": "6", "mem":"32Gi"},
+                                "envs":[{"name": "TMPDIR", "value": "/app/data"}],
+                                "volumes":[{"volume_type": "persistent_volume_claim","name": "volume-flood","mount_path": "/app/data","spec": { "size": "200Gi" }}]
+                               },
+                    function="elaborate",
+                    name="elaborate"
+                    )
+            
+            s1 >> s2 >> s3 >> s4 >> s5
 
-        s2 = pc.step(name="downloadS1Post",
-                     function="download_images_s1",
-                     action="job",
-                     secrets=["CDSETOOL_ESA_USER","CDSETOOL_ESA_PASSWORD"],
-                     fs_group='8877',
-                     args=["main.py", string_dict_data_s1Post],
-                     resources={"cpu": {"requests": "3", "limits": "6"},"mem":{"requests": "32Gi", "limits": "64Gi"}},
-                     envs=[{"name": "TMPDIR", "value": "/app/files"}],
-                     volumes=[{
-                        "volume_type": "persistent_volume_claim",
-                        "name": "volume-flood",
-                        "mount_path": "/app/files",
-                        "spec": { "size": "100Gi" }
-                        }
-                    ]).after(s1)
-        
-        s3 = pc.step(name="downloadS2Pre",
-                     function="download_images_s2",
-                     action="job",
-                     secrets=["CDSETOOL_ESA_USER","CDSETOOL_ESA_PASSWORD"],
-                     fs_group='8877',
-                     args=["main.py", string_dict_data_s2Pre],
-                     resources={"cpu": {"requests": "3", "limits": "6"},"mem":{"requests": "32Gi", "limits": "64Gi"}},
-                     envs=[{"name": "TMPDIR", "value": "/app/files"}],
-                     volumes=[{
-                        "volume_type": "persistent_volume_claim",
-                        "name": "volume-flood",
-                        "mount_path": "/app/files",
-                        "spec": { "size": "100Gi" }
-                        }
-                    ]).after(s2)
-
-        s4 = pc.step(name="downloadS2Post",
-                     function="download_images_s2",
-                     action="job",
-                     secrets=["CDSETOOL_ESA_USER","CDSETOOL_ESA_PASSWORD"],
-                     fs_group='8877',
-                     args=["main.py", string_dict_data_s2Post],
-                     resources={"cpu": {"requests": "3", "limits": "6"},"mem":{"requests": "32Gi", "limits": "64Gi"}},
-                     envs=[{"name": "TMPDIR", "value": "/app/files"}],
-                     volumes=[{
-                        "volume_type": "persistent_volume_claim",
-                        "name": "volume-flood",
-                        "mount_path": "/app/files",
-                        "spec": { "size": "100Gi" }
-                        }
-                    ]).after(s3)
-
-        s5 = pc.step(name="elaborate",
-                     function="elaborate",
-                     action="job",
-                     fs_group='8877',
-                     resources={"cpu": {"requests": "3", "limits": "6"},"mem":{"requests": "32Gi", "limits": "64Gi"}},
-                     envs=[{"name": "TMPDIR", "value": "/app/data"}],
-                     volumes=[{
-                        "volume_type": "persistent_volume_claim",
-                        "name": "volume-flood",
-                        "mount_path": "/app/data",
-                        "spec": { "size": "200Gi" }
-                    }],
-                     args=['/shared/launch.sh', str(s1_artifact_pre), str(s1_artifact_post), str(s2_artifact_pre), str(s2_artifact_post), str(geometry), 'Slopes_TN', 'trentino_slope_map.tif', 'Lakes_TN', 'idrspacq.shp', 'Rivers_TN', 'cif_pta2022_v.shp', str(outputName), str(floodDate), 'EPSG:25832', "['VV','VH']", '700', '7', '15', '2', str(aoiName)]
-                     ).after(s4)
-
+    return w
 ```
 
 There is a committed version of this file on the repo.
@@ -218,15 +210,15 @@ Register workflow 'pipeline_flood' in the project. In the following step, we reg
 ```python
 workflow = proj.new_workflow(
 name="pipeline_flood",
-kind="kfp",
+kind="hera",
 code_src="git+https://<username>:<personal_access_token>@github.com/tn-aixpa/rs-flood-detection",
-handler="src.flood_pipeline:myhandler")
+handler="src.flood_pipeline:pipeline")
 ```
 
 <p align="justify">If you want to modify the pipeline source code, either update the existing version on github repo or register the pipeline with locally modified version of python source file for e.g. the value of parameter 'artifact_name' is set to 'sentinel1_GRD_preflood' in first step S1 of pipeline. If you want to log the artifact with different name inside to the DH platform project, create/update the pipeline code locally by replacing the value of 'artifact_name' key followed by the registration of pipeline using the locally modified file as shown below.</p>
 
 ```python
-workflow = proj.new_workflow(name="pipeline_flood", kind="kfp", code_src= "flood_pipeline.py", handler = "myhandler")
+workflow = proj.new_workflow(name="pipeline_flood", kind="hera", code_src= "flood_pipeline.py", handler = "pipeline")
 ```
 
 ## 7. Build workflow
@@ -235,15 +227,3 @@ workflow = proj.new_workflow(name="pipeline_flood", kind="kfp", code_src= "flood
 wfbuild = workflow.run(action="build", wait=True)
 wfbuild.spec
 ```
-
-After the build, the pipeline specification and configuration is displayed as the result of this step(wfbuild.spec). The same can be achieved from the console UI dashboard or the left menu using the 'INSPECTOR' button which opens a dialog containing the resource in JSON format.
-
-```python
-{
-    "task": "kfp+build://flood-detection/45a57c99570d41868c9d210e0427c864",
-    "workflow": "kfp://flood-detection/pipeline_flood:5c731db0bd7b4af6a2024627e4b9da66",
-    ...
-  }
-```
-
-<p align="justify">In order to integrate the pipeline with the front end UI 'rsde-pipeline-manger', the value of 'task' and 'workflow' keys are the two important configuration parameters that must be set in the in the configuration(config.yml) as taskId and workflowId. For more detailed information see <a href="https://github.com/tn-aixpa/rsde-pipeline-manager">rsde-pipeline-manger</a></p>
