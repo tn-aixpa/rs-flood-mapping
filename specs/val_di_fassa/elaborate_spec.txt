@@ -1,0 +1,43 @@
+args:
+  - /shared/launch.sh
+  - sentinel1_GRD_preflood_val_di_fassa_oct_2018
+  - sentinel1_GRD_postflood_val_di_fassa_oct_2018
+  - sentinel2_pre_flood_val_di_fassa_oct_2018
+  - sentinel2_post_flood_val_di_fassa_oct_2018
+  - POLYGON ((11.29144551 46.14191445, 11.29144551 46.49953314, 11.92008811
+    46.49953314, 11.92008811 46.14191445, 11.29144551 46.14191445))
+  - Slopes_TN
+  - trentino_slope_map.tif
+  - Lakes_TN
+  - idrspacq.shp
+  - Rivers_TN
+  - cif_pta2022_v.shp
+  - val_di_fassa_oct_2018
+  - 2018-10-27
+  - EPSG:25832
+  - "['VV','VH']"
+  - "900"
+  - "17"
+  - "9"
+  - "4"
+  - val di fassa
+image: ghcr.io/tn-aixpa/rs-flood-mapping:0.14.6
+task: container+job://0-14-flood-detection/d62992ecde1c40f5b4ffd8c82b5162f5
+function: container://0-14-flood-detection/elaborate:abfab6bad8354d16a5db85e525060970
+volumes:
+  - name: volume-flood
+    spec:
+      size: 200Gi
+    volume_type: persistent_volume_claim
+    mount_path: /app/data
+envs:
+  - name: TMPDIR
+    value: /app/data
+resources:
+  cpu: "6"
+  mem: 32Gi
+source:
+  source: launch.sh
+  base64: IyEvYmluL2Jhc2gKbHMgLWxhIC9zaGFyZWQKY2Qgfgpwd2QKc291cmNlIC5iYXNocmMKZXhwb3J0IFBBVEg9Ii9ob21lL25vbnJvb3QvbWluaWZvcmdlMy9zbmFwL2JpbjokUEFUSCIKZXhwb3J0IFBST0pfTElCPS9ob21lL25vbnJvb3QvbWluaWZvcmdlMy9zaGFyZS9wcm9qCmV4cG9ydCBHREFMX0RBVEE9L2hvbWUvbm9ucm9vdC9taW5pZm9yZ2UzL3NoYXJlL2dkYWwKZXhwb3J0IEdEQUxfRFJJVkVSX1BBVEg9L2hvbWUvbm9ucm9vdC9taW5pZm9yZ2UzL2xpYi9nZGFscGx1Z2lucwpleHBvcnQgUFJPSl9EQVRBPS9ob21lL25vbnJvb3QvbWluaWZvcmdlMy9zaGFyZS9wcm9qCmdkYWwtY29uZmlnIC0tdmVyc2lvbgpweXRob24gLS12ZXJzaW9uCmVjaG8gIkdEQUwgREFUQSBBRlRFUiBFWFBPUlQ6IgplY2hvICRHREFMX0RBVEEKZWNobyAiUFJPSl9MSUIgQUZURVIgRVhQT1JUIgplY2hvICRQUk9KX0xJQgplY2hvICJSdW5uaW5nIGZsb29kIG1hcHBpbmcgc2NyaXB0IHdpdGggcGFyYW1ldGVyczoiCmVjaG8gInsnczFQcmVGbG9vZCc6ICckMScsICdzMVBvc3RGbG9vZCc6JyQyJywgJ3MyUHJlRmxvb2QnOickMycsJ3MyUG9zdEZsb29kJzonJDQnLCdnZW9tV0tUJzonJDUnLCdzbG9wZUFydGlmYWN0JzonJDYnLCdzbG9wZUZpbGVOYW1lJzonJDcnLCdsYWtlU2hhcGVBcnRpZmFjdE5hbWUnOickOCcsJ2xha2VTaGFwZUZpbGVOYW1lJzonJDknLCdyaXZlclNoYXBlQXJ0aWZhY3ROYW1lJzonJHsxMH0nLCdyaXZlclNoYXBlRmlsZU5hbWUnOickezExfScsJ291dHB1dCc6JyR7MTJ9JywnZXZlbnREYXRlJzonJHsxM30nLCd0YXJnZXRDUlMnOickezE0fScsJ3BvbGFyaXphdGlvbic6JHsxNX0sJ2RlbV90aHJlc2hvbGQnOiR7MTZ9LCdzbG9wZV90aHJlc2hvbGQnOiR7MTd9LCdub2lzZV9taW5fcGl4ZWxzJzokezE4fSwncml2ZXJfYnVmZmVyX21ldGVycyc6JHsxOX19LCAnYW9pX25hbWUnOickezIwfSd9IgpjZCAvYXBwCnB5dGhvbiBtYWluLnB5ICJ7J3MxUHJlRmxvb2QnOickMScsICdzMVBvc3RGbG9vZCc6JyQyJywgJ3MyUHJlRmxvb2QnOickMycsJ3MyUG9zdEZsb29kJzonJDQnLCdnZW9tV0tUJzonJDUnLCdzbG9wZUFydGlmYWN0JzonJDYnLCdzbG9wZUZpbGVOYW1lJzonJDcnLCdsYWtlU2hhcGVBcnRpZmFjdE5hbWUnOickOCcsJ2xha2VTaGFwZUZpbGVOYW1lJzonJDknLCdyaXZlclNoYXBlQXJ0aWZhY3ROYW1lJzonJHsxMH0nLCdyaXZlclNoYXBlRmlsZU5hbWUnOickezExfScsJ291dHB1dCc6JyR7MTJ9JywnZXZlbnREYXRlJzonJHsxM30nLCd0YXJnZXRDUlMnOickezE0fScsJ3BvbGFyaXphdGlvbic6JHsxNX0sJ2RlbV90aHJlc2hvbGQnOiR7MTZ9LCdzbG9wZV90aHJlc2hvbGQnOiR7MTd9LCdub2lzZV9taW5fcGl4ZWxzJzokezE4fSwncml2ZXJfYnVmZmVyX21ldGVycyc6JHsxOX0sICdhb2lfbmFtZSc6JyR7MjB9J30iCmV4aXQ=
+fs_group: 8877
+local_execution: false

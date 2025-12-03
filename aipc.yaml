@@ -57,7 +57,7 @@ operations:
       framework: aixpa
       spec:
         kind: container
-        image: ghcr.io/tn-aixpa/sentinel-tools:0.11.1_dev
+        image: ghcr.io/tn-aixpa/sentinel-tools:0.14.6
     inputs:
       - parameters:
           - name: start_date
@@ -88,7 +88,7 @@ operations:
       framework: aixpa
       spec:
         kind: container
-        image: ghcr.io/tn-aixpa/sentinel-tools:0.11.1_dev
+        image: ghcr.io/tn-aixpa/sentinel-tools:0.14.6
     inputs:
       - par ameters:
           - name: start_date
