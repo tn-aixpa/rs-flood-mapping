@@ -1,0 +1,32 @@
+args:
+  - main.py
+  - '{"satelliteParams":{"satelliteType": "Sentinel2","processingLevel":
+    "S2MSI2A","bandmath": ["NDWI"]},"startDate":"2020-10-02","endDate":
+    "2020-10-22","geometry": "POLYGON ((10.644988646837982 45.85539621678084,
+    10.644988646837982 46.06780100571985, 10.991744628283294 46.06780100571985,
+    10.991744628283294 45.85539621678084, 10.644988646837982
+    45.85539621678084))","cloudCover": "[0,20]","area_sampling":
+    "True","artifact_name":
+    "sentinel2_post_flood_garda_oct_2020","preprocess_data_only": "false"}'
+image: ghcr.io/tn-aixpa/sentinel-tools:0.14.6
+task: container+job://flood-detection/0fbb758ba8d7406e990a1a3a0c2a812a
+function: container://flood-detection/download-images-s2:95e45d4b570a45ab9c4bfc1018d1bc1c
+volumes:
+  - name: volume-flood
+    spec:
+      size: 100Gi
+    volume_type: persistent_volume_claim
+    mount_path: /app/files
+envs:
+  - name: TMPDIR
+    value: /app/files
+resources:
+  cpu: "6"
+  mem: 32Gi
+fs_group: 8877
+secrets:
+  - CDSETOOL_ESA_USER
+  - CDSETOOL_ESA_PASSWORD
+command: python
+local_execution: false
+

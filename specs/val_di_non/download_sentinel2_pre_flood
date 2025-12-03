@@ -1,0 +1,32 @@
+args:
+  - main.py
+  - '{"satelliteParams":{"satelliteType": "Sentinel2","processingLevel":
+    "S2MSI2A","bandmath": ["NDWI"]},"startDate":"2018-10-07","endDate":
+    "2018-10-27","geometry": "POLYGON ((10.81356293600004 46.09024746800003,
+    10.81356293600004 46.56319437500008, 11.285659684000052 46.56319437500008,
+    11.285659684000052 46.09024746800003, 10.81356293600004
+    46.09024746800003))","cloudCover": "[0,20]","area_sampling":
+    "True","artifact_name" :
+    "sentinel2_pre_flood_val_di_non_oct_2018","preprocess_data_only": "false"}'
+image: ghcr.io/tn-aixpa/sentinel-tools:0.14.6
+task: container+job://flood-detection/3905992f70ee4facb984c6e8d6ec8453
+function: container://flood-detection/download-images-s2:9dab5417abbd45b09be5075645b88e26
+volumes:
+  - name: volume-flood
+    spec:
+      size: 100Gi
+    volume_type: persistent_volume_claim
+    mount_path: /app/files
+envs:
+  - name: TMPDIR
+    value: /app/files
+resources:
+  cpu: "6"
+  mem: 32Gi
+fs_group: 8877
+secrets:
+  - CDSETOOL_ESA_USER
+  - CDSETOOL_ESA_PASSWORD
+command: python
+local_execution: false
+

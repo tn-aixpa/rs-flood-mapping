@@ -1,0 +1,29 @@
+args:
+  - main.py
+  - '{"satelliteParams": {"satelliteType": "Sentinel1","processingLevel":
+    "LEVEL1","sensorMode": "IW","productType":
+    "GRD"},"startDate":"2018-10-20","endDate": "2018-10-27","geometry": "POLYGON
+    ((11.29144551 46.14191445, 11.29144551 46.49953314, 11.92008811 46.49953314,
+    11.92008811 46.14191445, 11.29144551 46.14191445))","area_sampling":
+    "True","tmp_path_same_folder_dwl":"True","artifact_name":  "sentinel1_GRD_preflood_val_di_fassa_oct_2018"}'
+image: ghcr.io/tn-aixpa/sentinel-tools:0.14.6
+task: container+job://0-14-flood-detection/e710b3b6b1474f0a883dbf931e7e4aa7
+function: container://0-14-flood-detection/download-images-s1:b384d5d758b64126ac221db15b209781
+volumes:
+  - name: volume-flood
+    spec:
+      size: 100Gi
+    volume_type: persistent_volume_claim
+    mount_path: /app/files
+envs:
+  - name: TMPDIR
+    value: /app/files
+resources:
+  cpu: "6"
+  mem: 32Gi
+fs_group: 8877
+secrets:
+  - CDSETOOL_ESA_USER
+  - CDSETOOL_ESA_PASSWORD
+command: python
+local_execution: false
