@@ -97,7 +97,9 @@ run = function_s2.run(action="job",
         secrets=["CDSETOOL_ESA_USER","CDSETOOL_ESA_PASSWORD"],
         fs_group='8877',
         args=list_args,
-        resources={"mem":{"requests": "32Gi", "limits": "64Gi"}},
+        resources={
+            "mem": "64Gi"
+        },
         volumes=[{
             "volume_type": "persistent_volume_claim",
             "name": "volume-flood",
@@ -135,7 +137,7 @@ run = function_s2.run(action="job",
         secrets=["CDSETOOL_ESA_USER","CDSETOOL_ESA_PASSWORD"],
         fs_group='8877',
         args=list_args,
-        resources={"mem":{"requests": "32Gi", "limits": "64Gi"}},
+        resources={"mem": "64Gi"},
         volumes=[{
             "volume_type": "persistent_volume_claim",
             "name": "volume-flood",

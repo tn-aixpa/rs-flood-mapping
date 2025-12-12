@@ -19,7 +19,7 @@ The function aims at downloading all the flood inputs from project context and p
 ```python
 run_el = function_rs.run(action="job",
                 fs_group='8877',
-                resources={"cpu": {"requests": "3", "limits": "6"},"mem":{"requests": "32Gi", "limits": "64Gi"}},
+                resources={"cpu": "6","mem":"64Gi"},
                 volumes=[{
                    "volume_type": "persistent_volume_claim",
                    "name": "volume-flood",
@@ -30,4 +30,4 @@ run_el = function_rs.run(action="job",
             )
 ```
 
-<p align="justify">As indicated in the project documentation, the pixel based analysis performed in the elaboration steps are computation heavy. The best possible performance matrix is more or less around the configuration indicated in the step above. The amount of sentinal data can vary. A safe limit volume of 250Gi is specified as persistent volume claim to ensure significant data space. The function takes around 40 mins to complete with 16 CPUs and 64GB Ram for 2 years of data which is the default period. The output GeoTIFF raster file flood_detection_layer.tif is saved in the project context as an artifact zip file (output_flood_mask).</p>
+<p align="justify">As indicated in the project documentation, the pixel based analysis performed in the elaboration steps are computation heavy. The best possible performance matrix is more or less around the configuration indicated in the step above. The amount of sentinal data can vary. A safe limit volume of 250Gi is specified as persistent volume claim to ensure significant data space. The function takes around 40 mins to complete with 16 CPUs and 64GB Ram indicated flood event date. The output GeoTIFF raster file flood_detection_layer.tif is saved in the project context as an artifact zip file (output_flood_mask).</p>
